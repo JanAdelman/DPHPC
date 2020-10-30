@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstring>
 #include <algorithm>
+#include <benchmark/benchmark.h>
 
 // The information of one suffix is stored in this structure
 struct suffix
@@ -31,7 +32,7 @@ int *constructSuffixArray(char *str, int len)
     suffixes[i].index = i;
     suffixes[i].suffix_i = (str+i);
   }
-  
+
   std::sort(suffixes, suffixes+len, cmp);
 
   // initialise new suffix array
