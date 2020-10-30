@@ -20,7 +20,7 @@ int cmp(struct suffix a, struct suffix b)
 // index
 int *constructSuffixArray(char *str, int len)
 {
-  // struct to store the suffixex and the indexes of length len
+  // struct to store the suffixe and the indexes of length len
   struct suffix suffixes[len];
 
   // store all suffixes in an array such that we can retain its index when sorting
@@ -31,14 +31,13 @@ int *constructSuffixArray(char *str, int len)
     suffixes[i].index = i;
     suffixes[i].suffix_i = (str+i);
   }
-
-  //std::sort(suffixes.begin(), suffixes.end(), cmp);
+  
   std::sort(suffixes, suffixes+len, cmp);
 
   // initialise new suffix array
   int *suffixArray = new int[len];
   for (int i = 0; i < len; i++)
-      suffixArray[i] = suffixes[i].index;\
+      suffixArray[i] = suffixes[i].index;
 
   return  suffixArray;
 }
@@ -48,7 +47,7 @@ void printArray(int array[], int n)
 {
   for (int i = 0; i < n; i++)
   {
-    std::cout << array[i] << " ";  
+    std::cout << array[i] << " ";
   }
   std::cout << std::endl;
 }
