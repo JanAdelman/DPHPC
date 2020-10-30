@@ -1,5 +1,4 @@
 // Program that creates a suffix array from a string in a sequential manner
-
 #include <iostream>
 #include <cstring>
 #include <algorithm>
@@ -30,18 +29,37 @@ int *constructSuffixArray(char *str, int len)
   for (int i = 0; i < len; ++i)
   {
     suffixes[i].index = i;
-    suffixes[i].suffix_i = (len+i);
+    suffixes[i].suffix_i = (str+i);
   }
 
-  std::sort(suffixes.begin(), suffixes.end(), cmp);
+  //std::sort(suffixes.begin(), suffixes.end(), cmp);
+  std::sort(suffixes, suffixes+len, cmp);
 
+  // initialise new suffix array
+  int *suffixArray = new int[len];
+  for (int i = 0; i < len; i++)
+      suffixArray[i] = suffixes[i].index;\
 
+  return  suffixArray;
 }
 
+// function to print an array
+void printArray(int array[], int n)
+{
+  for (int i = 0; i < n; i++)
+  {
+    std::cout << array[i] << " ";  
+  }
+  std::cout << std::endl;
+}
 
 int main()
 {
-  char str[] = "hello";
+  char str[] = "MPI_NOT_USED";
   int len = std::strlen(str);
+  int *suffixArray = constructSuffixArray(str, len);
+  std::cout << "suffix array for: " << str << std::endl;
+  printArray(suffixArray, len);
   std::cout << "process finished" << std::endl;
+  return 0;
 }
