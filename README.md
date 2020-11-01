@@ -17,3 +17,19 @@ Our project consists of the following steps:
 Remark:
 
 In a shared memory system with 8 cores using vertical splitting (splitting the sequences vertically into 8 subsequences if 8 eight cores are used) the group of Al Aziz achieved a speedup of 4.45 compared to the sequential implementation. This is an indication that parallelising fast string search by employing suffix trees works. 
+
+## Compilation
+
+The build environment with MPICH and google-benchmark can be built using the contained Dockerfile. 
+
+```
+docker build -t hpc .
+sudo docker run -it --entrypoint /bin/bash <ID>
+```
+
+The project is then built using MPI with the appropriate flags. 
+
+```
+mpicxx naive_suffixarray.cpp -o main -lbenchmark
+mpiexec -np 1 ./main
+```
