@@ -4,7 +4,7 @@ In this project we will implement a parallelised suffix array building algorithm
 
 Inspiration is drawn from the following papers:
 
-Flick, Patrick, and Srinivas Aluru. “Parallel Distributed Memory Construction of Suffix and Longest Common Prefix Arrays.” Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis on - SC ’15, ACM Press, 2015, pp. 1–10. DOI.org (Crossref), doi:10.1145/2807591.2807609.
+Flick, Patrick, and Srinivas Aluru. “Parallel Distributed Memory Construction of Suffix and Longest Common Prefix Arrays.” Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis on - SC ’15, ACM Press, 2015, pp. 1–10. DOI.org (Crossref), https://doi:10.1145/2807591.2807609.
 
 Aziz M.M.A., Thulasiraman P., Mohammed N. (2020) Parallel Generalized Suffix Tree Construction for Genomic Data. In: Martín-Vide C., Vega-Rodríguez M., Wheeler T. (eds) Algorithms for Computational Biology. AlCoB 2020. Lecture Notes in Computer Science, vol 12099. Springer, Cham. https://doi.org/10.1007/978-3-030-42266-0_1
 
