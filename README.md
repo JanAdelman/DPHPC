@@ -27,6 +27,6 @@ sudo docker run -it --entrypoint /bin/bash <ID>
 The project is then built using MPI with the appropriate flags. 
 
 ```
-mpicxx naive_suffixarray.cpp -o main -lbenchmark
+mpicxx -std=c++14 -stdlib=libc++ prefix_doubling.cpp -o main -lbenchmark
 mpiexec -np 1 ./main
 ```
