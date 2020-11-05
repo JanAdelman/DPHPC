@@ -12,10 +12,10 @@ tuple_vector rebucket(tuple_vector vec){
     int count=0;
     for(tuple_vector::const_iterator i=vec.begin(); i!=vec.end();i++){
         if(std::get<0>(*i)==prev_string){
-            B[count]=std::make_tuple(std::get<0>(*i),prev_index);
+            B.push_back(std::make_tuple(std::get<0>(*i),prev_index));
         }
         else{
-            B[count]=std::make_tuple(std::get<0>(*i),count);
+            B.push_back(std::make_tuple(std::get<0>(*i),count));
             prev_string=std::get<0>(*i);
             prev_index= count;
         }

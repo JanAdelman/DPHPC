@@ -26,6 +26,13 @@ tuple_vector get_kmers(const std::string& input, const int k){
     return kmers;
 }
 
+void sort_tuple_vector(tuple_vector& input){
+    std::sort(input.begin(), input.end(), [](std::tuple<std::string, int> a, std::tuple<std::string, int> b) {
+        return std::lexicographical_compare(std::get<0>(a).begin(), std::get<0>(a).end(),
+        std::get<0>(b).begin(), std::get<0>(b).end());
+    });
+}
+
 void print_tuple_vector(const tuple_vector& input){
 
     for (tuple_vector::const_iterator i = input.begin(); i != input.end(); ++i) {
