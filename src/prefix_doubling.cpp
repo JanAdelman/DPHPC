@@ -15,11 +15,11 @@ typedef std::vector<std::tuple<std::string, int>> tuple_vector;
 tuple_vector get_kmers(const std::string& input, const int k){
     tuple_vector kmers;
 
-    for (std::string::const_iterator i = input.begin(); i != input.end(); i += k) {
+    for (std::string::const_iterator i = input.begin(); i != input.end(); i ++) {
         kmers.push_back(
             std::make_tuple(
                 std::string(i, i + k),
-                int ((i - input.begin())/k)
+                int ((i - input.begin()))
             )
         );
     }
