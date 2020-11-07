@@ -21,9 +21,11 @@ int main (){
     //print_tuple_vector(B);   
     for(int h=k; h<=test.size();h*=2){
         tuple_vector B_new(B.size());
+        //reorder to string order
         for(int i=0;i<B.size();i++){
             B_new[std::get<1>(test_vec[i])]=B[i];
         }
+        //Do we destroy B_new now? Consider std::move
         B=B_new;
         //print_tuple_vector(B);
         triple_vector B2(B.size());

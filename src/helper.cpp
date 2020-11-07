@@ -55,22 +55,64 @@ void print_triple_vector(const triple_vector &input)
     std::cout << std::endl;
 }
 
+bool triple_tuple_comp(std::tuple<int, int, int> a, 
+    std::tuple<int, int, int> b){
+    if(std::get<0>(a)<std::get<0>(b))
+        return true;
+    else if(std::get<0>(a)>std::get<0>(b))
+        return false;
+    else{
+        if(std::get<1>(a)<std::get<1>(b))
+            return true;
+        else if(std::get<1>(a)>std::get<1>(b))
+            return false;
+        else{
+            if(std::get<2>(a)<std::get<2>(b))
+                return true;
+            else if(std::get<2>(a)>std::get<2>(b))
+                return false;
+        }
+    }
+}
+
 void sort_triple_vector(triple_vector &input)
-{
-    
-    std::sort(input.begin(), input.end(), [&](auto a, auto b) {
-        return (std::get<0>(a) < std::get<0>(b)) ? true : (
-            std::get<1>(a) < std::get<1>(b) ? true : (
-                    std::get<2>(a) < std::get<2>(b)
-                )
-        );
-    });
+{   
+    std::sort(input.begin(), input.end(), triple_tuple_comp);
     
 }
 
 tuple_vector rebucket(tuple_vector vec)
 {
     tuple_vector B;
+    std::string prev_string = std::get<0>(vec[0]);
+    //Maybe not keep track of prev_index, but access i-1.
+    int prev_index = 0;
+    int count = 0;
+    
+    for (tuple_vector::const_iterator i = vec.begin(); i != vec.end(); i++)
+    {
+        if (std::get<0>(*i) == prev_string)
+        {
+            //Not use push_back, but allocate size
+            B.push_back(std::make_tuple(std::get<0>(*i), prev_index));
+        }
+        else
+        {
+            B.push_back(std::make_tuple(std::get<0>(*i), count));
+            prev_string = std::get<0>(*i);
+            prev_index = count;
+        }
+        count++;
+    }
+    return B;
+}
+
+triple_vector rebucket_2h(triple_vector vec)
+{
+    //problem:Need B to be tuple vector in order to return at the
+    //beginning of for loop, but we only saved the indices here in the 
+    //triple vectors
+    triple_vector B;
     std::string prev_string = std::get<0>(vec[0]);
     int prev_index = 0;
     int count = 0;
