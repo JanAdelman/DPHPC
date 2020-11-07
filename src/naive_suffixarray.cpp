@@ -1,9 +1,9 @@
-#define CATCH_CONFIG_ENABLE_BENCHMARKING
+//#define CATCH_CONFIG_ENABLE_BENCHMARKING
 // Program that creates a suffix array from a string in a sequential manner
 #include <iostream>
 #include <cstring>
 #include <algorithm>
-#include <benchmark/benchmark.h>
+//#include <benchmark/benchmark.h>
 
 // The information of one suffix is stored in this structure
 struct suffix
@@ -55,13 +55,21 @@ void printArray(int array[], int n)
 }
 
 void run() {
-      char str[] = "MPI_NOT_USED";
+      char str[] = "bananaxanahanana$";
       int len = std::strlen(str);
       int *suffixArray = constructSuffixArray(str, len);
-      //std::cout << "suffix array for: " << str << std::endl;
-      //printArray(suffixArray, len);
-      //std::cout << "process finished" << std::endl;
+      
+      std::cout << "suffix array for: " << str << std::endl;
+      printArray(suffixArray, len);
+      std::cout << "process finished" << std::endl;
 }
+
+int main(){
+  run();
+  return 0;
+}
+
+/*
 
 static void BM_NaiveSuffixArray(benchmark::State& state) {
   // Perform setup here
@@ -77,3 +85,4 @@ BENCHMARK(BM_NaiveSuffixArray);
 // Run the benchmark
 BENCHMARK_MAIN();
 
+*/

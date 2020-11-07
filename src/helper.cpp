@@ -35,6 +35,14 @@ void sort_tuple_vector(tuple_vector &input)
     });
 }
 
+void print_vector(const std::vector<int> &input){
+    for(std::vector<int>::const_iterator i=input.begin();i!=input.end(); ++i){
+        std::cout<<*i<<",";
+
+    }
+    std::cout << std::endl;
+}
+
 void print_tuple_vector(const tuple_vector &input)
 {
 
@@ -69,7 +77,7 @@ bool triple_tuple_comp(std::tuple<int, int, int> a,
         else{
             if(std::get<2>(a)<std::get<2>(b))
                 return true;
-            else if(std::get<2>(a)>std::get<2>(b))
+            else// if(std::get<2>(a)>std::get<2>(b))
                 return false;
         }
     }
@@ -107,30 +115,40 @@ tuple_vector rebucket(tuple_vector vec)
     return B;
 }
 
-triple_vector rebucket_2h(triple_vector vec)
+void rebucket_2h(triple_vector vec, std::vector<int> &SA, std::vector<int> &B)
 {
     //problem:Need B to be tuple vector in order to return at the
     //beginning of for loop, but we only saved the indices here in the 
     //triple vectors
-    triple_vector B;
-    std::string prev_string = std::get<0>(vec[0]);
-    int prev_index = 0;
+    int prev_index_B = 0;
+    int prev_index_B2 = 0;
+    int prev_index =0;
     int count = 0;
-    for (tuple_vector::const_iterator i = vec.begin(); i != vec.end(); i++)
+    for (triple_vector::const_iterator i = vec.begin(); i != vec.end(); i++)
     {
-        if (std::get<0>(*i) == prev_string)
+        if (std::get<0>(*i)!=prev_index_B or std::get<1>(*i)!=prev_index_B2)
         {
-            B.push_back(std::make_tuple(std::get<0>(*i), prev_index));
+            B[i-vec.begin()]=count;
+            prev_index_B=std::get<0>(*i);
+            prev_index_B2=std::get<1>(*i);
+            prev_index=count;
+            SA[i-vec.begin()]=std::get<2>(*i);
         }
         else
         {
-            B.push_back(std::make_tuple(std::get<0>(*i), count));
-            prev_string = std::get<0>(*i);
-            prev_index = count;
+            B[i-vec.begin()]=prev_index;
+            SA[i-vec.begin()]=std::get<2>(*i);
         }
         count++;
     }
-    return B;
+}
+bool check_singleton(std::vector<int> &input){
+    for(std::vector<int>::const_iterator i=input.begin();i!=input.end()-1; ++i){
+        if(*i==*(i+1)){
+            return false;
+        }
+    }
+    return true;
 }
 /*
 int main (){
