@@ -15,11 +15,11 @@ typedef std::vector<std::tuple<int, int, int>> triple_vector;
 
 tuple_vector get_kmers(const std::string &input, const int k)
 {
-    tuple_vector kmers;
+    tuple_vector kmers(input.size());
 
     for (std::string::const_iterator i = input.begin(); i != input.end(); i++)
     {
-        kmers.push_back(
+        kmers[i-input.begin()]=(
             std::make_tuple(
                 std::string(i, i + k),
                 int((i - input.begin()))));
@@ -91,22 +91,22 @@ void sort_triple_vector(triple_vector &input)
 
 tuple_vector rebucket(tuple_vector vec)
 {
-    tuple_vector B;
     std::string prev_string = std::get<0>(vec[0]);
     //Maybe not keep track of prev_index, but access i-1.
     int prev_index = 0;
     int count = 0;
+    tuple_vector B(vec.size());
     
     for (tuple_vector::const_iterator i = vec.begin(); i != vec.end(); i++)
     {
         if (std::get<0>(*i) == prev_string)
         {
             //Not use push_back, but allocate size
-            B.push_back(std::make_tuple(std::get<0>(*i), prev_index));
+            B[i-vec.begin()]=std::make_tuple(std::get<0>(*i), prev_index);
         }
         else
         {
-            B.push_back(std::make_tuple(std::get<0>(*i), count));
+            B[i-vec.begin()]=(std::make_tuple(std::get<0>(*i), count));
             prev_string = std::get<0>(*i);
             prev_index = count;
         }
