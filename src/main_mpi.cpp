@@ -10,13 +10,8 @@ typedef std::vector<std::tuple<int, int, int>> triple_vector;
 #define MASTER 0
 #define K 5
 
-struct tuple_t
+int main(int argc, char **argv)
 {
-    int idx;
-    char seq[K];
-};
-
-int main(int argc, char** argv){
 
     MPI_Init(NULL, NULL);
 
@@ -28,20 +23,23 @@ int main(int argc, char** argv){
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-
-
     MPI_Datatype tuple_struct;
-    int lengths[2] = { 1, K };
-    const MPI_Aint displacements[2] = { 0, sizeof(int)};
-    MPI_Datatype types[2] = { MPI_INT, MPI_CHAR };
+    int lengths[2] = {1, K};
+    const MPI_Aint displacements[2] = {0, sizeof(int)};
+    MPI_Datatype types[2] = {MPI_INT, MPI_CHAR};
     MPI_Type_create_struct(2, lengths, displacements, types, &tuple_struct);
     MPI_Type_commit(&tuple_struct);
 
-
     //MAIN LOGIC
 
-    if (world_rank == MASTER){
+    char input[] = "bananaxanahanana$";
+    int step_size = strlen(input) / (world_size - 1);//CHANGED TO EXLUCDE MASTER
+
+    if (world_rank == MASTER)
+    {
+
         
+        /*
         struct tuple_t buffer1;
         buffer1.idx = 0;
         strncpy(buffer1.seq, "ADA", K);
@@ -53,31 +51,36 @@ int main(int argc, char** argv){
         buffer2.seq[K] = '\0';
 
         tuple_t data[2] = {buffer1, buffer2}; 
+        */
 
-        MPI_Send(&data, 2, tuple_struct, 1, 0, MPI_COMM_WORLD);
-    
+        //Send out overlapping substrings to workers
+
+        int reciever = 0;
+        for (int i = 0; i < strlen(input) - step_size - 1; i+=step_size)
+        {
+            if (i + step_size + K > strlen(input))
+            { // Send rest
+                MPI_Send(&input[i], strlen(input) - i, MPI_CHAR, reciever, 0, MPI_COMM_WORLD);
+            }
+            else
+            {
+                MPI_Send(&input[i], step_size + K - 1, MPI_CHAR, reciever, 0, MPI_COMM_WORLD);
+            }
+            reciever++;
+        }
     }
-    if (world_rank == 1){
-        
-        tuple_t r_data[2]; 
+    else
+    {
+        char sub_input[step_size + K - 1];
+        MPI_Recv(&sub_input, step_size + K - 1, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        MPI_Recv(&r_data, 2, tuple_struct, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
+        tuple_t kmers[strlen(input) - K + 1]; 
+        get_kmers(sub_input, K, kmers);
 
-        std::cout << r_data[0].idx << r_data[0].seq << std::endl;
-    
+        //MPI_Barrier(MPI_COMM_WORLD); 
+        print_kmers(kmers);
+
     }
-
-    //scattering str from MASTER node out to the other node
-	//MPI_Scatter(b, n_per_proc, MPI_INT, bp, n_per_proc, MPI_INT, MASTER, MPI_COMM_WORLD);
-
-    //compute on each substring
-    //tuple_vector sub_vec =  get_kmers(substr, K);
-
-    //MASTER node gathering array from the workers
-    //MPI_Gather(cp, n_per_proc, MPI_INT, c, n_per_proc, MPI_INT, MASTER, MPI_COMM_WORLD);
-
-
     // Finalize the MPI environment.
     MPI_Finalize();
-
 }

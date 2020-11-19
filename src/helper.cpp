@@ -12,7 +12,13 @@
 
 typedef std::vector<std::tuple<std::string, int>> tuple_vector;
 typedef std::vector<std::tuple<int, int, int>> triple_vector;
+struct tuple_t
+{
+    int idx;
+    char seq[];
+};
 
+/*
 tuple_vector get_kmers(const std::string &input, const int k)
 {
     tuple_vector kmers(input.size());
@@ -25,6 +31,32 @@ tuple_vector get_kmers(const std::string &input, const int k)
                 int((i - input.begin()))));
     }
     return kmers;
+}
+*/
+
+void get_kmers(const char* input, const int k, tuple_t* kmers)
+{
+    //tuple_t kmers[input.size()];
+
+    for (int i = 0; i < sizeof(kmers); i++)
+    {
+        memcpy(kmers[i].seq, input + i, k);
+        kmers[i].seq[strlen(kmers[i].seq)] = '\0'; /* Add terminator */
+        
+        kmers[i].idx = i;
+    }
+}
+
+void print_char_array(const char* input){
+    for (int i = 0; i < sizeof(input); ++i)
+        std::cout << input[i]; 
+    std::cout << std::endl;
+}
+
+void print_kmers(const tuple_t* input){
+    for (int i = 0; i < sizeof(input); ++i)
+        print_char_array(input[i].seq); 
+    std::cout << "---" << std::endl; 
 }
 
 void sort_tuple_vector(tuple_vector &input)
