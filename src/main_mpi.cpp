@@ -34,6 +34,7 @@ int main(int argc, char **argv)
 
     char input[] = "bananaxanahanana$";
     int step_size = strlen(input) / (world_size - 1);//CHANGED TO EXLUCDE MASTER
+    std::cout<<"step: "<<step_size<<std::endl;
 
     if (world_rank == MASTER)
     {
@@ -55,15 +56,25 @@ int main(int argc, char **argv)
 
         //Send out overlapping substrings to workers
 
-        int reciever = 0;
-        for (int i = 0; i < strlen(input) - step_size - 1; i+=step_size)
+        std::cout<<"world_rank"<<world_rank<<std::endl;
+
+        int reciever = 1;
+        std::cout<<"thing"<<strlen(input) - step_size<<std::endl;
+        for (int i = 0; i <= strlen(input) - step_size; i+=step_size)
         {
+            std::cout<<"receiver "<<reciever<<std::endl;
             if (i + step_size + K > strlen(input))
             { // Send rest
+            std::cout<<i+step_size+K<<std::endl;
+            std::cout<<strlen(input)<<std::endl;
+            std::cout<<"if "<<std::endl;
+            std::cout<<i<<std::endl;
+            std::cout<<strlen(input)-i<<std::endl;
                 MPI_Send(&input[i], strlen(input) - i, MPI_CHAR, reciever, 0, MPI_COMM_WORLD);
             }
             else
             {
+                std::cout<<"else "<<std::endl;
                 MPI_Send(&input[i], step_size + K - 1, MPI_CHAR, reciever, 0, MPI_COMM_WORLD);
             }
             reciever++;
@@ -71,9 +82,12 @@ int main(int argc, char **argv)
     }
     else
     {
+        std::cout<<"world_rank"<<world_rank<<std::endl;
         char sub_input[step_size + K - 1];
-        MPI_Recv(&sub_input, step_size + K - 1, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&sub_input, step_size + K - 1, MPI_CHAR, MASTER, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+
+        print_char_array(sub_input);
         tuple_t kmers[strlen(input) - K + 1]; 
         get_kmers(sub_input, K, kmers);
 
