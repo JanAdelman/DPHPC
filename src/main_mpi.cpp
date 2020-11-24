@@ -32,8 +32,9 @@ int main(int argc, char **argv)
     //MAIN LOGIC
 
     char input[] = "ABCDEFGHIJKLMNOPQRST$";
-    int step_size = strlen(input) / (world_size - 1);//CHANGED TO EXLUCDE MASTER
-    //std::cout<<"step: "<<step_size<<std::endl;
+    int step_size = strlen(input) / (world_size);//CHANGED TO EXLUCDE MASTER
+    std::cout<<"step: "<<step_size<<std::endl;
+    std::cout<<"strleng"<<strlen(input);
 
     if (world_rank == MASTER)
     {
@@ -61,21 +62,19 @@ int main(int argc, char **argv)
         //std::cout<<"thing"<<strlen(input) - step_size<<std::endl;
         for (int i = 0; i <= strlen(input) - step_size; i+=step_size)
         {
-            //std::cout<<"receiver "<<reciever<<std::endl;
-            if (i + step_size + K > strlen(input))
+            std::cout<<"end already: "<<i+step_size+K<<std::endl;
+            if (i + step_size + K >= strlen(input))
             { // Send rest
-            /*
-            std::cout<<i+step_size+K<<std::endl;
-            std::cout<<strlen(input)<<std::endl;
-            std::cout<<"if "<<std::endl;
-            std::cout<<i<<std::endl;
-            std::cout<<strlen(input)-i<<std::endl;
-            */
-                MPI_Send(&input[i], strlen(input) - i, MPI_CHAR, reciever, 0, MPI_COMM_WORLD);
+                tuple_t kmers[strlen(input) - i];
+                get_kmers(&input[i], K, kmers, strlen(input) - i);
+                
+                std::cout << world_rank << std::endl;
+                print_kmers(kmers, strlen(input) - i);
+                //MPI_Send(&input[i], strlen(input) - i, MPI_CHAR, reciever, 0, MPI_COMM_WORLD);
             }
             else
             {
-                //std::cout<<"else "<<std::endl;
+                std::cout << reciever << std::endl; 
                 MPI_Send(&input[i], step_size + K - 1, MPI_CHAR, reciever, 0, MPI_COMM_WORLD);
             }
             reciever++;
@@ -96,7 +95,8 @@ int main(int argc, char **argv)
         tuple_t kmers[recieved_size-K+1];
         get_kmers(sub_input, K, kmers, recieved_size-K+1);
 
-        //MPI_Barrier(MPI_COMM_WORLD); 
+        //MPI_Barrier(MPI_COMM_WORLD);
+        std::cout << world_rank << std::endl; 
         print_kmers(kmers, recieved_size-K+1);
 
     }
