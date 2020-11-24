@@ -12,10 +12,13 @@
 
 typedef std::vector<std::tuple<std::string, int>> tuple_vector;
 typedef std::vector<std::tuple<int, int, int>> triple_vector;
+
+#define K 3
+
 struct tuple_t
 {
     int idx;
-    char seq[];
+    char seq[K];
 };
 
 /*
@@ -34,28 +37,28 @@ tuple_vector get_kmers(const std::string &input, const int k)
 }
 */
 
-void get_kmers(const char* input, const int k, tuple_t* kmers)
-{
-    //tuple_t kmers[input.size()];
-
-    for (int i = 0; i < sizeof(kmers); i++)
-    {
-        memcpy(kmers[i].seq, input + i, k);
-        kmers[i].seq[strlen(kmers[i].seq)] = '\0'; /* Add terminator */
-        
-        kmers[i].idx = i;
-    }
-}
-
-void print_char_array(const char* input){
-    for (int i = 0; i < sizeof(input); ++i)
+void print_char_array(const char* input, size_t size){
+    for (int i = 0; i < size; ++i)
         std::cout << input[i]; 
     std::cout << std::endl;
 }
 
-void print_kmers(const tuple_t* input){
-    for (int i = 0; i < sizeof(input); ++i)
-        print_char_array(input[i].seq); 
+void get_kmers(const char* input, const int k, tuple_t* kmers, size_t size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        memcpy(kmers[i].seq, input + i, k);
+        kmers[i].seq[strlen(kmers[i].seq)] = '\0'; /* Add terminator */
+        kmers[i].idx = i;
+
+        //std::cout << "get_kmer " << sizeof(kmers)<<"|"<<sizeof(kmers[i].seq)<< " "; print_char_array(kmers[i].seq); 
+    }
+}
+
+
+void print_kmers(const tuple_t* input, size_t size){
+    for (int i = 0; i < size; ++i)
+        print_char_array(input[i].seq, K); 
     std::cout << "---" << std::endl; 
 }
 
