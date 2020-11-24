@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <mpi.h>
+#include <math.h>
 
 #include "helper.cpp"
 
@@ -14,6 +15,14 @@ int main(int argc, char **argv)
 
     MPI_Init(NULL, NULL);
 
+    //SETUP TUPLE STRUCT
+    MPI_Datatype MPI_TUPLE_STRUCT;
+    int lengths[2] = {1, K};
+    const MPI_Aint displacements[2] = {0, sizeof(int)};
+    MPI_Datatype types[2] = {MPI_INT, MPI_CHAR};
+    MPI_Type_create_struct(2, lengths, displacements, types, &MPI_TUPLE_STRUCT);
+    MPI_Type_commit(&MPI_TUPLE_STRUCT);
+
     // Get the number of processes
     int world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -22,37 +31,33 @@ int main(int argc, char **argv)
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-    MPI_Datatype tuple_struct;
-    int lengths[2] = {1, K};
-    const MPI_Aint displacements[2] = {0, sizeof(int)};
-    MPI_Datatype types[2] = {MPI_INT, MPI_CHAR};
-    MPI_Type_create_struct(2, lengths, displacements, types, &tuple_struct);
-    MPI_Type_commit(&tuple_struct);
-
     //MAIN LOGIC
 
-    char input[] = "ABCDEFGHIJKLMNOPQRST$";
+    char input[] = "agaagccagtactgcgacaaaggtaggacatggcgttgcaccaaatcagtaccggctccacaataattacaccatagggcaccgctatccgcgtgcgtca$";
+    int global_size = strlen(input);
     int step_size = strlen(input) / (world_size);//CHANGED TO EXLUCDE MASTER
-    std::cout<<"step: "<<step_size<<std::endl;
-    std::cout<<"strleng"<<strlen(input);
+
+
+    /*
+    struct tuple_t buffer1;
+    buffer1.idx = 0;
+    strncpy(buffer1.seq, "ZEE", K);
+    //buffer1.seq[K] = '\0';
+
+    struct tuple_t buffer2;
+    buffer2.idx = 1;
+    strncpy(buffer2.seq, "EYE", K);
+    //buffer2.seq[K] = '\0';
+
+    tuple_t data[2] = {buffer1, buffer2};
+
+    tuple_t_sort(data, 2);
+
+    tuple_t_print(data, 2);
+    */
 
     if (world_rank == MASTER)
     {
-
-        
-        /*
-        struct tuple_t buffer1;
-        buffer1.idx = 0;
-        strncpy(buffer1.seq, "ADA", K);
-        buffer1.seq[K] = '\0';
-
-        struct tuple_t buffer2;
-        buffer2.idx = 1;
-        strncpy(buffer2.seq, "TZA", K);
-        buffer2.seq[K] = '\0';
-
-        tuple_t data[2] = {buffer1, buffer2}; 
-        */
 
         //Send out overlapping substrings to workers
 
@@ -62,19 +67,21 @@ int main(int argc, char **argv)
         //std::cout<<"thing"<<strlen(input) - step_size<<std::endl;
         for (int i = 0; i <= strlen(input) - step_size; i+=step_size)
         {
-            std::cout<<"end already: "<<i+step_size+K<<std::endl;
             if (i + step_size + K >= strlen(input))
             { // Send rest
-                tuple_t kmers[strlen(input) - i];
-                get_kmers(&input[i], K, kmers, strlen(input) - i);
-                
-                std::cout << world_rank << std::endl;
-                print_kmers(kmers, strlen(input) - i);
-                //MPI_Send(&input[i], strlen(input) - i, MPI_CHAR, reciever, 0, MPI_COMM_WORLD);
+                int size = strlen(input)-i-K+1;
+                tuple_t kmers[size];
+                get_kmers(&input[i], K, kmers, size);
+                tuple_t_sort(kmers, size);
+                //tuple_t_print(kmers, strlen(input) - i-K+1);
+
+                tuple_t global_result_kmers[global_size];
+                typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers, size, MPI_COMM_WORLD, global_result_kmers);
+
+                tuple_t_print(global_result_kmers, global_size);
             }
             else
             {
-                std::cout << reciever << std::endl; 
                 MPI_Send(&input[i], step_size + K - 1, MPI_CHAR, reciever, 0, MPI_COMM_WORLD);
             }
             reciever++;
@@ -85,7 +92,7 @@ int main(int argc, char **argv)
         //std::cout<<"world_rank"<<world_rank<<std::endl;
         char sub_input[step_size + K - 1];
 
-        int recieved_size;  
+        int recieved_size;
         MPI_Status status;
         MPI_Recv(&sub_input, step_size + K - 1, MPI_CHAR, MASTER, 0, MPI_COMM_WORLD, &status);
         MPI_Get_count(&status, MPI_CHAR, &recieved_size);
@@ -96,8 +103,11 @@ int main(int argc, char **argv)
         get_kmers(sub_input, K, kmers, recieved_size-K+1);
 
         //MPI_Barrier(MPI_COMM_WORLD);
-        std::cout << world_rank << std::endl; 
-        print_kmers(kmers, recieved_size-K+1);
+
+        tuple_t_sort(kmers, recieved_size-K+1);
+
+        //Global sort
+        typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers, recieved_size-K+1, MPI_COMM_WORLD, NULL);
 
     }
     // Finalize the MPI environment.
