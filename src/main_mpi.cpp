@@ -33,10 +33,10 @@ int main(int argc, char **argv)
 
     //MAIN LOGIC
 
-    char input[] = "agaagccagtactgcgacaaaggtaggacatggcgttgcaccaaatcagtaccggctccacaataattacaccatagggcaccgctatccgcgtgcgtca$";
-    int global_size = strlen(input);
-    int step_size = strlen(input) / (world_size);//CHANGED TO EXLUCDE MASTER
+    //char input[] = "agaagccagtactgcgacaaaggtaggacatggcgttgcaccaaatcagtaccggctccacaataattacaccatagggcaccgctatccgcgtgcgtca$";
+    char input[] = "ABCDEFGHAHAHABCDEFGHAHAHABCDEFGHAHAH$";
 
+    int step_size = ceil((float)strlen(input) / (float)(world_size));//CHANGED TO EXLUCDE MASTER
 
     /*
     struct tuple_t buffer1;
@@ -65,9 +65,9 @@ int main(int argc, char **argv)
 
         int reciever = 1;
         //std::cout<<"thing"<<strlen(input) - step_size<<std::endl;
-        for (int i = 0; i <= strlen(input) - step_size; i+=step_size)
+        for (int i = 0; i < strlen(input); i+=step_size)
         {
-            if (i + step_size + K >= strlen(input))
+            if (i + step_size > strlen(input))
             { // Send rest
                 int size = strlen(input)-i-K+1;
                 tuple_t kmers[size];
@@ -75,10 +75,11 @@ int main(int argc, char **argv)
                 tuple_t_sort(kmers, size);
                 //tuple_t_print(kmers, strlen(input) - i-K+1);
 
-                tuple_t global_result_kmers[global_size];
-                typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers, size, MPI_COMM_WORLD, global_result_kmers);
+                tuple_t* global_result_kmers;
+                global_result_kmers = typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers,size , MPI_COMM_WORLD);
 
-                tuple_t_print(global_result_kmers, global_size);
+                //tuple_t_print(global_result_kmers, 200);
+                //std::cout << global_result_kmers[0].seq << std::endl; 
             }
             else
             {
@@ -89,15 +90,14 @@ int main(int argc, char **argv)
     }
     else
     {
-        //std::cout<<"world_rank"<<world_rank<<std::endl;
         char sub_input[step_size + K - 1];
 
+
+        //PRBE?
         int recieved_size;
         MPI_Status status;
         MPI_Recv(&sub_input, step_size + K - 1, MPI_CHAR, MASTER, 0, MPI_COMM_WORLD, &status);
         MPI_Get_count(&status, MPI_CHAR, &recieved_size);
-
-        //std::cout << "WHOLE SUB INPUT: "; print_char_array(sub_input);
 
         tuple_t kmers[recieved_size-K+1];
         get_kmers(sub_input, K, kmers, recieved_size-K+1);
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
         tuple_t_sort(kmers, recieved_size-K+1);
 
         //Global sort
-        typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers, recieved_size-K+1, MPI_COMM_WORLD, NULL);
+        typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers, recieved_size-K+1, MPI_COMM_WORLD);
 
     }
     // Finalize the MPI environment.
