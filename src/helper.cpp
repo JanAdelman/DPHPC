@@ -73,17 +73,12 @@ tuple_t* typename_t_sort(int height, int id, T localArray[], int size, MPI_Comm 
 
     myHeight = 0;
     //PLEASE OVERLOAD
-    //if (std::is_same<T, tuple_t>::value)
-    //tuple_t_sort(localArray, size); // sort local array
-    //else
-
+  
     half1 = localArray; // assign half1 to localArray
 
     while (myHeight < height)
     { // not yet at top
         parent = (id & (~(1 << myHeight)));
-        std::cout << "id & parent" << std::endl;
-        std::cout << id << " " << parent << std::endl;
 
         if (parent == id)
         { // left child
@@ -98,50 +93,29 @@ tuple_t* typename_t_sort(int height, int id, T localArray[], int size, MPI_Comm 
                 // allocate memory and receive array of right child
                 half2 = (T *)malloc(recieved_size * sizeof(T));
                 MPI_Recv(half2, recieved_size, MPI_TUPLE_STRUCT, rightChild, 0, MPI_COMM_WORLD, &status);
-                std::cout << "Right child: " << rightChild << std::endl;
-                std::cout << "recieved size: " << recieved_size << std::endl;
-                //std::cout << "half2 size: " << tuple_t_print(half2, recieved_size) << std::endl;
-
             }
-            //else
-            //   MPI_Recv(half2, size, MPI, rightChild, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            // allocate memory for result of merge
             mergeResult = (T *)malloc((size+recieved_size)* sizeof(T));
             // merge half1 and half2 into mergeResult
             std::merge(half1, half1 + size, half2, half2 + recieved_size,mergeResult, tuple_t_compare);
-            if (myHeight==1&&id==0)
-            {
-                //std::cout << "half1AND2"<<std::endl;;
-                //tuple_t_print(half1, size + 100);
-                //std::cout<<"half2"<<std::endl;
-                //tuple_t_print(half2, 200);
-            }
 
             // reassign half1 to merge result
-
-            //std::cout << myHeight;
-            //tuple_t_print(mergeResult, 200);
-
             half1 = mergeResult;
-
 
             free(half2);
             mergeResult = NULL;
 
             if (myHeight==1&&id==0)
             {
-                //std::cout << myHeight << "||" << id << std::endl;
-                //tuple_t_print(half1, 200);
 
                 return half1;
             }
 
+            size=size+recieved_size;
             myHeight++;
         }
         else
         {   // right child
             // send local array to parent
-            //if (std::is_same<T, tuple_t>::value)
             MPI_Send(half1, size, MPI_TUPLE_STRUCT, parent, 0, MPI_COMM_WORLD);
             if (myHeight != 0)
                 free(half1);

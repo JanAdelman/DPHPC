@@ -33,9 +33,8 @@ int main(int argc, char **argv)
 
     //MAIN LOGIC
 
-    //char input[] = "agaagccagtactgcgacaaaggtaggacatggcgttgcaccaaatcagtaccggctccacaataattacaccatagggcaccgctatccgcgtgcgtca$";
-    char input[] = "ABCDEFGHAHAHABCDEFGHAHAHABCDEFGHAHAH$";
-
+    char input[] = "agaagccagtactgcgacaaaggtaggacatggcgttgcaccaaatcagtaccggctccacaataattacaccatagggcaccgctatccgcgtgcgtca$";
+    //char input[] = "ABCDEFGHAHAHABCDEFGHAHAHABCDEFGHAHAH$";
     int step_size = ceil((float)strlen(input) / (float)(world_size));//CHANGED TO EXLUCDE MASTER
 
     /*
@@ -74,13 +73,11 @@ int main(int argc, char **argv)
                 tuple_t kmers[size];
                 get_kmers(&input[i], K, kmers, size);
                 tuple_t_sort(kmers, size);
-                //tuple_t_print(kmers, strlen(input) - i-K+1);
-
                 tuple_t* global_result_kmers;
                 global_result_kmers = typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers,size , MPI_COMM_WORLD);
 
-                //tuple_t_print(global_result_kmers, 200);
-                //std::cout << global_result_kmers[0].seq << std::endl;
+                tuple_t_print(global_result_kmers, strlen(input)-K+1);
+
             }
             else
             {
@@ -93,8 +90,6 @@ int main(int argc, char **argv)
     {
         char sub_input[step_size + K - 1];
 
-
-        //PRBE?
         int recieved_size;
         MPI_Status status;
         MPI_Recv(&sub_input, step_size + K - 1, MPI_CHAR, MASTER, 0, MPI_COMM_WORLD, &status);
@@ -103,13 +98,12 @@ int main(int argc, char **argv)
         tuple_t kmers[recieved_size-K+1];
         get_kmers(sub_input, K, kmers, recieved_size-K+1);
 
-        //MPI_Barrier(MPI_COMM_WORLD);
-
+        // sort the tuples lexicographically 
         tuple_t_sort(kmers, recieved_size-K+1);
-        tuple_t_print(kmers,recieved_size-K+1);
+
         //Global sort
         typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers, recieved_size-K+1, MPI_COMM_WORLD);
-        std::cout << log2(world_size) << std::endl;
+
     }
     // Finalize the MPI environment.
     MPI_Finalize();
