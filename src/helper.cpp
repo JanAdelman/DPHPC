@@ -73,7 +73,7 @@ tuple_t* typename_t_sort(int height, int id, T localArray[], int size, MPI_Comm 
 
     myHeight = 0;
     //PLEASE OVERLOAD
-  
+
     half1 = localArray; // assign half1 to localArray
 
     while (myHeight < height)
@@ -254,6 +254,24 @@ bool check_singleton(std::vector<int> &input)
     }
     return true;
 }
+
+tuple_vector get_kmers_not_mpi(const std::string &input, const int k)
+ {
+     tuple_vector kmers;
+
+     for (std::string::const_iterator i = input.begin(); i != input.end(); i++)
+     {
+         kmers.push_back(
+             std::make_tuple(
+                 std::string(i, i + k),
+                 int((i - input.begin()))));
+     }
+     return kmers;
+ }
+
+
+
+
 /*
 int main (){
     std::string test = "bananaahahahhahahh";

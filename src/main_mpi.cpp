@@ -2,7 +2,6 @@
 #include <string>
 #include <mpi.h>
 #include <math.h>
-
 #include "helper.cpp"
 
 typedef std::vector<std::tuple<std::string, int>> tuple_vector;
@@ -98,7 +97,7 @@ int main(int argc, char **argv)
         tuple_t kmers[recieved_size-K+1];
         get_kmers(sub_input, K, kmers, recieved_size-K+1);
 
-        // sort the tuples lexicographically 
+        // sort the tuples lexicographically
         tuple_t_sort(kmers, recieved_size-K+1);
 
         //Global sort
