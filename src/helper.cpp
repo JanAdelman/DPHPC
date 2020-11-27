@@ -82,6 +82,8 @@ tuple_t* typename_t_sort(int height, int id, T localArray[], int size, MPI_Comm 
     while (myHeight < height)
     { // not yet at top
         parent = (id & (~(1 << myHeight)));
+        std::cout << "id & parent" << std::endl;
+        std::cout << id << " " << parent << std::endl;
 
         if (parent == id)
         { // left child
@@ -96,6 +98,10 @@ tuple_t* typename_t_sort(int height, int id, T localArray[], int size, MPI_Comm 
                 // allocate memory and receive array of right child
                 half2 = (T *)malloc(recieved_size * sizeof(T));
                 MPI_Recv(half2, recieved_size, MPI_TUPLE_STRUCT, rightChild, 0, MPI_COMM_WORLD, &status);
+                std::cout << "Right child: " << rightChild << std::endl;
+                std::cout << "recieved size: " << recieved_size << std::endl;
+                //std::cout << "half2 size: " << tuple_t_print(half2, recieved_size) << std::endl;
+
             }
             //else
             //   MPI_Recv(half2, size, MPI, rightChild, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -105,15 +111,15 @@ tuple_t* typename_t_sort(int height, int id, T localArray[], int size, MPI_Comm 
             std::merge(half1, half1 + size, half2, half2 + recieved_size,mergeResult, tuple_t_compare);
             if (myHeight==1&&id==0)
             {
-                std::cout << "half1AND2"<<std::endl;;
-                tuple_t_print(half1, size + 100);
+                //std::cout << "half1AND2"<<std::endl;;
+                //tuple_t_print(half1, size + 100);
                 //std::cout<<"half2"<<std::endl;
                 //tuple_t_print(half2, 200);
             }
 
             // reassign half1 to merge result
-            
-            //std::cout << myHeight; 
+
+            //std::cout << myHeight;
             //tuple_t_print(mergeResult, 200);
 
             half1 = mergeResult;
@@ -124,8 +130,8 @@ tuple_t* typename_t_sort(int height, int id, T localArray[], int size, MPI_Comm 
 
             if (myHeight==1&&id==0)
             {
-                std::cout << myHeight << "||" << id << std::endl;
-                tuple_t_print(half1, 200);
+                //std::cout << myHeight << "||" << id << std::endl;
+                //tuple_t_print(half1, 200);
 
                 return half1;
             }
@@ -142,7 +148,7 @@ tuple_t* typename_t_sort(int height, int id, T localArray[], int size, MPI_Comm 
             myHeight = height;
         }
     }
-    return NULL; 
+    return NULL;
 }
 
 void sort_tuple_vector(tuple_vector &input)

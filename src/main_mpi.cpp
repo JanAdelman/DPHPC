@@ -67,9 +67,10 @@ int main(int argc, char **argv)
         //std::cout<<"thing"<<strlen(input) - step_size<<std::endl;
         for (int i = 0; i < strlen(input); i+=step_size)
         {
-            if (i + step_size > strlen(input))
+            if (i + step_size >= strlen(input)) //maybe add -1 oder >=
             { // Send rest
                 int size = strlen(input)-i-K+1;
+
                 tuple_t kmers[size];
                 get_kmers(&input[i], K, kmers, size);
                 tuple_t_sort(kmers, size);
@@ -79,7 +80,7 @@ int main(int argc, char **argv)
                 global_result_kmers = typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers,size , MPI_COMM_WORLD);
 
                 //tuple_t_print(global_result_kmers, 200);
-                //std::cout << global_result_kmers[0].seq << std::endl; 
+                //std::cout << global_result_kmers[0].seq << std::endl;
             }
             else
             {
@@ -105,10 +106,10 @@ int main(int argc, char **argv)
         //MPI_Barrier(MPI_COMM_WORLD);
 
         tuple_t_sort(kmers, recieved_size-K+1);
-
+        tuple_t_print(kmers,recieved_size-K+1);
         //Global sort
         typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers, recieved_size-K+1, MPI_COMM_WORLD);
-
+        std::cout << log2(world_size) << std::endl;
     }
     // Finalize the MPI environment.
     MPI_Finalize();
