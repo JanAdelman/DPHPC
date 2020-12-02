@@ -2,7 +2,10 @@
 #include <string>
 #include <mpi.h>
 #include <math.h>
+#include <algorithm>
+
 #include "helper.cpp"
+
 
 typedef std::vector<std::tuple<std::string, int>> tuple_vector;
 typedef std::vector<std::tuple<int, int, int>> triple_vector;
@@ -71,11 +74,11 @@ int main(int argc, char **argv)
 
                 tuple_t kmers[size];
                 get_kmers(&input[i], K, kmers, size);
-                tuple_t_sort(kmers, size);
+                t_sort(kmers, size);
                 tuple_t* global_result_kmers;
-                global_result_kmers = typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers,size , MPI_COMM_WORLD);
+                global_result_kmers = typename_t_sort(log2(world_size), world_rank, kmers,size , MPI_COMM_WORLD);
 
-                tuple_t_print(global_result_kmers, strlen(input)-K+1);
+                //t_print(global_result_kmers, strlen(input)-K+1);
 
             }
             else
@@ -98,12 +101,46 @@ int main(int argc, char **argv)
         get_kmers(sub_input, K, kmers, recieved_size-K+1);
 
         // sort the tuples lexicographically
-        tuple_t_sort(kmers, recieved_size-K+1);
+        t_sort(kmers, recieved_size-K+1);
 
         //Global sort
-        typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers, recieved_size-K+1, MPI_COMM_WORLD);
+        typename_t_sort(log2(world_size), world_rank, kmers, recieved_size-K+1, MPI_COMM_WORLD);
 
     }
+
+    
+    if (world_rank == 0){
+        int data[] = {1,1,1,1}; 
+        int offsets[4] = {3,6,11,14};
+
+        shift_h(data, 6, MPI_COMM_WORLD, world_rank,
+                world_size, offsets,4);
+    }
+    else if (world_rank == 1){
+        int data[] = {2,2,2};
+        int offsets[4] = {3,6,11,14};
+
+    shift_h(data, 6, MPI_COMM_WORLD, world_rank,
+             world_size, offsets,3);
+    }
+    else if (world_rank == 2){
+        int data[] = {3,3,3,3,3};
+        int offsets[4] = {3,6,11,14};
+
+    shift_h(data, 6, MPI_COMM_WORLD, world_rank,
+             world_size, offsets,5);
+    }
+    else {
+        int data[] = {4,4,4};
+        int offsets[4] = {3,6,11,14};
+
+    shift_h(data, 6, MPI_COMM_WORLD, world_rank,
+             world_size, offsets,3);
+    }
+    
+
     // Finalize the MPI environment.
     MPI_Finalize();
 }
+
+

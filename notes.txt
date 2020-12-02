@@ -1,0 +1,4 @@
+-> Consider using openmp or atleast mpi3 remote memory access
+-> Performance evaluation 
+-> Implement the naive algorithm using parallel merge sort and compare to current implementation
+-> Encode nucleotide as 2 bit
