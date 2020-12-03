@@ -29,6 +29,23 @@ struct triple_t
     int b2;
 };
 
+void rebucketing(int *index,tuple_t *kmers, size_t size, int displ, int *local_SA){
+    index[0]=displ;
+    local_SA[0]=kmers[0].idx;
+    for(int i=1;i<size;i++){
+        if(!std::lexicographical_compare(kmers[i-1].seq, kmers[i-1].seq + K, kmers[i].seq, kmers[i].seq + K)){
+            index[i]=index[i-1];
+            //std::cout<<kmers[i].idx<<std::endl;
+            local_SA[i]=kmers[i].idx;
+        }
+        else{
+            index[i]=displ+i;
+            //std::cout<<kmers[i].idx<<std::endl;
+            local_SA[i]=kmers[i].idx;
+        }
+    }
+}
+
 void print_char_array(const char *input, size_t size)
 {
     for (int i = 0; i < size; ++i)
