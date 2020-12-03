@@ -14,7 +14,7 @@
 typedef std::vector<std::tuple<std::string, int>> tuple_vector;
 typedef std::vector<std::tuple<int, int, int>> triple_vector;
 
-#define K 2
+#define K 1
 
 struct tuple_t
 {
@@ -39,9 +39,41 @@ void get_kmers(const char *input, const int k, tuple_t *kmers, size_t size)
     }
 }
 
-bool tuple_t_compare(const tuple_t &b, const tuple_t &a)
+void get_kmers_adapt(const char *input, const int k, tuple_t *kmers, size_t size, int displacement)
 {
-    return !std::lexicographical_compare(a.seq, a.seq + K, b.seq, b.seq + K);
+    for (int i = 0; i < size; i++)
+    {
+        memcpy(kmers[i].seq, input + i, k);
+        kmers[i].seq[strlen(kmers[i].seq)] = '\0'; /* Add terminator */
+        kmers[i].idx =displacement+ i;
+    }
+}
+
+bool char_array_comp(const char* a, const char* b, int size){
+    bool same = true;
+    for (int i = 0; i < size; i++) {
+        if (*(a + i) != *(b + i))
+            same = false;
+    }
+    return same; 
+}
+
+bool tuple_t_compare(const tuple_t &a, const tuple_t &b)
+{
+    
+    if(std::lexicographical_compare(a.seq, a.seq + K, b.seq, b.seq + K)){
+        return true;
+    }
+    else{
+        if(char_array_comp(a.seq,b.seq,K)){
+            return a.idx<b.idx;
+        }
+        else{
+            return false;
+        }
+    }
+    
+    //return !std::lexicographical_compare(b.seq, b.seq + K, a.seq, a.seq + K);
 }
 
 void tuple_t_sort(tuple_t *input, size_t size)
@@ -51,19 +83,14 @@ void tuple_t_sort(tuple_t *input, size_t size)
 
 void tuple_t_print(const tuple_t *input, size_t size)
 {
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < size; i++){
         print_char_array((input + i)->seq, K);
+        std::cout<<input[i].idx<<std::endl;
+    }
     std::cout << "---" << std::endl;
 }
 
-bool char_array_comp(char* a, char* b, int size){
-    bool same = true;
-    for (int i = 0; i < size; i++) {
-        if (*(a + i) != *(b + i))
-            same = false;
-    }
-    return same; 
-}
+
 
 // Adapted from http://selkie-macalester.org/csinparallel/modules/MPIProgramming/build/html/mergeSort/mergeSort.html
 template <typename T>
@@ -205,12 +232,12 @@ void rebucketing(int *index,tuple_t *kmers, size_t size, int displ, int *local_S
     for(int i=1;i<size;i++){
         if(!std::lexicographical_compare(kmers[i-1].seq, kmers[i-1].seq + K, kmers[i].seq, kmers[i].seq + K)){
             index[i]=index[i-1];
-            std::cout<<kmers[i].idx<<std::endl;
+            //std::cout<<kmers[i].idx<<std::endl;
             local_SA[i]=kmers[i].idx;
         }
         else{
             index[i]=displ+i;
-            std::cout<<kmers[i].idx<<std::endl;
+            //std::cout<<kmers[i].idx<<std::endl;
             local_SA[i]=kmers[i].idx;
         }
     }
