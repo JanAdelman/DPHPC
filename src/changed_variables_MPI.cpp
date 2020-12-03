@@ -34,10 +34,12 @@ int main(int argc, char **argv)
 
     //char input[] = "agaagccagtactgcgacaaaggtaggacatggcgttgcaccaaatcagtaccggctccacaataattacaccatagggcaccgctatccgcgtgcgtca$";
     //char input[] = "ABCDEFGHAHAHABCDEFGHAHAHABCDEFGHAHAH$";
-    char input[] = "AAAASBBBL"; //overlapping string of k=2 and p=4
-    //AAA AS BB BL
-    //AAAA ASB BBB BL
-    //char input[]="AAAAIBBBBCDEFGHI";
+    //char input[] = "AAAASBBBL"; //overlapping string of k=2 and p=4
+    //char input[]="AAAAHHHKKKK";
+    char input[]="MISSISSIPPI$";
+    //AAA AAA AAH AHH HHH HHK HKK KKK KKK
+    //0 1 2 3 4 5 6 7 8
+    //0 1 2 3 
     int string_length = strlen(input);
     //int step_size = ceil((float)string_length / (float)(world_size)); //CHANGED TO EXLUCDE MASTER
     int nmin = string_length / world_size;   //min step size to send
@@ -89,7 +91,7 @@ int main(int argc, char **argv)
         }
         int size = sendnums[0] - K + 1;
         tuple_t kmers[size];
-        get_kmers(&input[displace[0]], K, kmers, size);
+        get_kmers_adapt(&input[displace[0]], K, kmers, size,displace[0]);
         tuple_t_sort(kmers, size);
         //tuple_t_print(kmers, size);
         global_result_kmers = typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers, size, MPI_COMM_WORLD);
@@ -134,7 +136,7 @@ int main(int argc, char **argv)
         //MPI_Get_count(&status, MPI_CHAR, &recieved_size);
 
         tuple_t kmers[size - K + 1];
-        get_kmers(sub_input, K, kmers, size - K + 1);
+        get_kmers_adapt(sub_input, K, kmers, size - K + 1,displace[world_rank]);
         //std::cout<<world_rank<<std::endl;
         //tuple_t_print(kmers, size - K + 1);
 
@@ -194,12 +196,21 @@ int main(int argc, char **argv)
     }
     //free(recvbuf);
     MPI_Barrier(MPI_COMM_WORLD);
-    /*
+    
     for (int i = 0; i < sendcounts[world_rank]; i++)
     {
+        std::cout<<"world rank"<< world_rank<< std::endl;
         std::cout << local_SA[i] << std::endl;
     }
+
+    /*
+    for(int h=K; h<string_length;h=h*2){
+        
+
+
+    }
     */
+    
     /*
     int global_array[string_length-K+1];
     MPI_Gatherv(local_array,sendcounts[world_rank], MPI_INT,global_array, sendcounts,displs,MPI_INT,0,MPI_COMM_WORLD);
