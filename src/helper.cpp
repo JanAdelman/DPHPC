@@ -14,7 +14,7 @@
 typedef std::vector<std::tuple<std::string, int>> tuple_vector;
 typedef std::vector<std::tuple<int, int, int>> triple_vector;
 
-#define K 3
+#define K 2
 
 struct tuple_t
 {
@@ -103,6 +103,15 @@ void t_print(const triple_t *input, size_t size)
         std::cout << "SA: " << (input + i)->idx << std::endl;
     }
     std::cout << "---" << std::endl;
+}
+
+bool char_array_comp(char* a, char* b, int size){
+    bool same = true;
+    for (int i = 0; i < size; i++) {
+        if (*(a + i) != *(b + i))
+            same = false;
+    }
+    return same; 
 }
 
 // Adapted from http://selkie-macalester.org/csinparallel/modules/MPIProgramming/build/html/mergeSort/mergeSort.html
@@ -370,6 +379,23 @@ bool triple_tuple_comp(std::tuple<int, int, int> a,
 void sort_triple_vector(triple_vector &input)
 {
     std::sort(input.begin(), input.end(), triple_tuple_comp);
+}
+
+void rebucketing(int *index,tuple_t *kmers, size_t size, int displ, int *local_SA){
+    index[0]=displ;
+    local_SA[0]=kmers[0].idx;
+    for(int i=1;i<size;i++){
+        if(!std::lexicographical_compare(kmers[i-1].seq, kmers[i-1].seq + K, kmers[i].seq, kmers[i].seq + K)){
+            index[i]=index[i-1];
+            std::cout<<kmers[i].idx<<std::endl;
+            local_SA[i]=kmers[i].idx;
+        }
+        else{
+            index[i]=displ+i;
+            std::cout<<kmers[i].idx<<std::endl;
+            local_SA[i]=kmers[i].idx;
+        }
+    }
 }
 
 tuple_vector rebucket(tuple_vector vec)
