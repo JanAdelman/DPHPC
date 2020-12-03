@@ -110,32 +110,25 @@ int main(int argc, char **argv)
 
     
     if (world_rank == 0){
-        int data[] = {1,1,1,1}; 
-        int offsets[4] = {3,6,11,14};
+        int data[] = {1,2,4,5}; 
 
-        shift_h(data, 6, MPI_COMM_WORLD, world_rank,
-                world_size, offsets,4);
+        all_singleton (data, MPI_COMM_WORLD, world_rank,
+             world_size, 4);
     }
     else if (world_rank == 1){
-        int data[] = {2,2,2};
-        int offsets[4] = {3,6,11,14};
-
-    shift_h(data, 6, MPI_COMM_WORLD, world_rank,
-             world_size, offsets,3);
+        int data[] = {5,8,9};
+               all_singleton (data, MPI_COMM_WORLD, world_rank,
+             world_size, 3);
     }
     else if (world_rank == 2){
-        int data[] = {3,3,3,3,3};
-        int offsets[4] = {3,6,11,14};
-
-    shift_h(data, 6, MPI_COMM_WORLD, world_rank,
-             world_size, offsets,5);
+        int data[] = {12,33,34,44,55};
+                all_singleton (data, MPI_COMM_WORLD, world_rank,
+             world_size, 5);
     }
     else {
-        int data[] = {4,4,4};
-        int offsets[4] = {3,6,11,14};
-
-    shift_h(data, 6, MPI_COMM_WORLD, world_rank,
-             world_size, offsets,3);
+        int data[] = {55,88,99};
+        all_singleton (data, MPI_COMM_WORLD, world_rank,
+             world_size, 3);
     }
     
 

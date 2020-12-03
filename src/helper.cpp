@@ -279,15 +279,15 @@ void shift_h(int *input, const int h, MPI_Comm comm, const int world_rank,
     print_int_array(input, local_length);
 }
 
-bool all_singleton int *input, MPI_Comm comm, const int world_rank,
+bool all_singleton (int *input, MPI_Comm comm, const int world_rank,
              const int world_size, int local_length){
 
     if (world_rank != 0)
     {
-        MPI_Send(input[0], 1, MPI_INT, world_rank - 1, 0, comm);
+        MPI_Send(input, 1, MPI_INT, world_rank - 1, 0, comm);
     }
 
-    int after_end = -1; 
+    int after_end[1] = {-1}; 
     if (world_rank != world_size - 1)
     {
         MPI_Recv(after_end, 1, MPI_INT, world_rank + 1, 0, comm, MPI_STATUS_IGNORE);
@@ -299,8 +299,10 @@ bool all_singleton int *input, MPI_Comm comm, const int world_rank,
         if (input[i] == input[i + 1])
             singleton = false;
     }
-    if (input[local_length - 1] == after_end)
+    if (input[local_length - 1] == after_end[0])
         singleton = false;
+
+    std::cout << singleton <<std::endl;
     return singleton; 
 }
 
