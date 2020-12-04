@@ -2,3 +2,4 @@
 -> Performance evaluation 
 -> Implement the naive algorithm using parallel merge sort and compare to current implementation
 -> Encode nucleotide as 2 bit
+-> consider bucket sort

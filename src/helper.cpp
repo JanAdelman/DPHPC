@@ -29,6 +29,12 @@ struct triple_t
     int b2;
 };
 
+struct tuple_ISA{
+    int SA;
+    int B;
+};
+
+/*
 void rebucketing(int *index,tuple_t *kmers, size_t size, int displ, int *local_SA){
     index[0]=displ;
     local_SA[0]=kmers[0].idx;
@@ -45,11 +51,81 @@ void rebucketing(int *index,tuple_t *kmers, size_t size, int displ, int *local_S
         }
     }
 }
+*/
+
+int bucket_id(int* displ, tuple_ISA &SA_B, int world_size){
+    for(int i=0;i<world_size-1;i++){
+        if (displ[i]<=SA_B.SA && displ[i+1]>SA_B.SA){
+            //std::cout<<"SA "<<SA_B.SA<<"i "<<i<<std::endl;
+            return i;
+        }
+    }
+    return world_size-1;
+}
+
+void rebucketing(tuple_ISA *SA_B,tuple_t *kmers, size_t size, int* displ, int* counts, int world_rank, int world_size){
+    SA_B[0].B=displ[world_rank];
+    SA_B[0].SA=kmers[0].idx;
+    int id_zero=bucket_id(displ,SA_B[0],world_size);
+    counts[id_zero]+=1;
+    for(int i=1;i<size;i++){
+        if(!std::lexicographical_compare(kmers[i-1].seq, kmers[i-1].seq + K, kmers[i].seq, kmers[i].seq + K)){
+            SA_B[i].B=SA_B[i-1].B;
+            SA_B[i].SA=kmers[i].idx;
+            int id=bucket_id(displ,SA_B[i],world_size);
+            counts[id]+=1;
+        }
+        else{
+            SA_B[i].B=displ[world_rank]+i;
+            SA_B[i].SA=kmers[i].idx;
+            int id=bucket_id(displ,SA_B[i],world_size);
+            counts[id]+=1;
+        }
+    }
+}
+
+
+tuple_ISA* probing_alltoallv(tuple_ISA* sendbuf, int* sdispls, int size, int world_size, int* sendcounts, MPI_Comm comm, int world_rank,MPI_Datatype TYPE){
+
+    //Send to every neighbour
+    for (int i = 0; i < world_size; i++){
+        if(i!=world_rank){
+           MPI_Send(&sendbuf[sdispls[i]],sendcounts[i], TYPE, i, 0, comm); 
+        }
+    }
+
+
+    //Allocate array of global size on this processor
+    tuple_ISA* recv_buffer = (tuple_ISA*) malloc(size * sizeof(tuple_ISA));
+    //Size of recieve buffer used so far 
+    int used_size = 0; 
+    int recieved_size;
+    //Recieve from every neighbour
+    for (int i = 0; i < world_size; i++){   
+        if(i!=world_rank){ 
+            MPI_Status status;
+            MPI_Recv(recv_buffer + used_size, size, TYPE, i, 0, comm, &status);
+            MPI_Get_count(&status, TYPE, &recieved_size);
+            //Increase used by recieved size to prepare next offset
+        }
+        else{
+            std::copy(sendbuf+sdispls[world_rank],sendbuf+sdispls[world_rank]+sendcounts[world_rank],recv_buffer+used_size);
+            recieved_size=sendcounts[world_rank];
+        }
+        //Increase used by recieved size to prepare next offset
+        used_size += recieved_size;
+        
+    }
+
+    return recv_buffer; 
+}
+
+
 
 void print_char_array(const char *input, size_t size)
 {
     for (int i = 0; i < size; ++i)
-        std::cout << input[i];
+        std::cout <<"   "<< input[i];
     std::cout << std::endl;
 }
 
@@ -141,7 +217,7 @@ void t_print(const tuple_t *input, size_t size)
 {
     for (int i = 0; i < size; i++){
         print_char_array((input + i)->seq, K);
-        std::cout<<input[i].idx<<std::endl;
+        std::cout<<"     "<<input[i].idx<<std::endl;
     }
     std::cout << "---" << std::endl;
 }
@@ -149,12 +225,35 @@ void t_print(const triple_t *input, size_t size)
 {
     for (int i = 0; i < size; i++)
     {
-        std::cout << "B: " << (input + i)->b << std::endl;
-        std::cout << "B2: " << (input + i)->b2 << std::endl;
-        std::cout << "SA: " << (input + i)->idx << std::endl;
+        std::cout << "    B: " << (input + i)->b << std::endl;
+        std::cout << "    B2: " << (input + i)->b2 << std::endl;
+        std::cout << "    SA: " << (input + i)->idx << std::endl;
     }
     std::cout << "---" << std::endl;
 }
+
+void tuple_print(const tuple_ISA *input, size_t size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        std::cout << "    B: " << (input + i)->B << std::endl;
+        std::cout << "    SA: " << (input + i)->SA << std::endl;
+    }
+    std::cout << "---" << std::endl;
+}
+
+
+int* reorder_to_stringorder(tuple_ISA *input,size_t size){
+    int* B=(int*) malloc(size * sizeof(int));
+    for(int i=0;i<size;i++){
+        *(B+((input+i)->SA))=(input+i)->B;
+        std::cout<<"SAshit:"<<(input+i)->SA<<std::endl;
+        std::cout<<"Bshit:"<<(input+i)->B<<std::endl;
+    }
+    return B;
+}
+
+
 
 
 

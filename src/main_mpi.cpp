@@ -22,6 +22,13 @@ int main(int argc, char **argv)
     MPI_Type_create_struct(2, lengths, displacements, types, &MPI_TUPLE_STRUCT);
     MPI_Type_commit(&MPI_TUPLE_STRUCT);
 
+    MPI_Datatype MPI_TUPLE_ISA;
+    int lengths_ISA[2] = {1, 1};
+    const MPI_Aint displacements_ISA[2] = {0, sizeof(int)};
+    MPI_Datatype types_ISA[2] = {MPI_INT, MPI_INT};
+    MPI_Type_create_struct(2, lengths_ISA, displacements_ISA, types_ISA, &MPI_TUPLE_ISA);
+    MPI_Type_commit(&MPI_TUPLE_ISA);
+
     // Get the number of processes
     int world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -148,7 +155,6 @@ int main(int argc, char **argv)
         //Global sort
         typename_t_sort(log2(world_size), world_rank, kmers, size - K + 1, MPI_COMM_WORLD);
     }
-
     MPI_Barrier(MPI_COMM_WORLD);
     int kmin = (string_length - K + 1) / world_size;   //min step size to send
     int kextra = (string_length - K + 1) % world_size; //remainder if not divisible by nprocessors
@@ -167,6 +173,91 @@ int main(int argc, char **argv)
     }
     tuple_t recvbuf[sendcounts[world_rank]];
     MPI_Scatterv(global_result_kmers, sendcounts, displs, MPI_TUPLE_STRUCT, recvbuf, sendcounts[world_rank], MPI_TUPLE_STRUCT, 0, MPI_COMM_WORLD);
+    tuple_ISA SA_B[sendcounts[world_rank]];//array of tuples on this processor
+
+    int counts_bucket[world_size];//counts of tuples to send out to each processor
+    //according to their index for later ISA creation
+    for(int i=0;i<world_size;i++){
+        counts_bucket[i]=0;
+    }
+
+    rebucketing(SA_B, recvbuf, sendcounts[world_rank], displs,counts_bucket,world_rank, world_size);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    if (world_rank < world_size - 1)
+    {
+        tuple_t final[1];
+        final[0].idx = SA_B[sendcounts[world_rank] - 1].B;
+        memcpy(final[0].seq, recvbuf[sendcounts[world_rank] - 1].seq, sizeof(recvbuf[0].seq));
+        //final[0].seq=recvbuf[sendcounts[world_rank]-1].seq;
+        MPI_Send(&final, 1, MPI_TUPLE_STRUCT, world_rank + 1, 0, MPI_COMM_WORLD);
+    }
+    if (world_rank != 0)
+    {
+        tuple_t curr[1];
+        MPI_Recv(&curr, 1, MPI_TUPLE_STRUCT, world_rank - 1, 0, MPI_COMM_WORLD, NULL);
+        //tuple_t_print(curr, K);
+        int i = 0;
+        //std::cout<<char_array_comp(curr[0].seq,recvbuf[i].seq,K)<<std::endl;
+        //std::cout<<curr[0].idx<<std::endl;
+        while (char_array_comp(curr[0].seq, recvbuf[i].seq, K))
+        {
+            //std::cout<<"while_loop"<<std::endl;
+            SA_B[i].B = curr[0].idx;
+            i++;
+        }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    tuple_ISA sendbufISA[sendcounts[world_rank]];
+    int displace_ISA[world_size];
+    int current_index_ISA=0;
+    int counts_filled[world_size];//used to fill the sendbuf ISA
+    for(int i=0;i<world_size;i++){
+        displace_ISA[i]=current_index_ISA;
+        current_index_ISA+=counts_bucket[i];
+        counts_filled[i]=0;
+    }
+
+    for(int j=0;j<sendcounts[world_rank];j++){
+        //int id= bucket_id(displs, SA_B[j], world_size);
+        int id= bucket_id(displs, SA_B[j], world_size);
+        sendbufISA[displace_ISA[id]+counts_filled[id]]=SA_B[j];
+        counts_filled[id]++;      
+    }
+
+    //this array must be updated after every for loop
+    tuple_ISA* recvbuf_ISA= probing_alltoallv(sendbufISA, displace_ISA, sendcounts[world_rank], world_size, counts_bucket, MPI_COMM_WORLD, world_rank, MPI_TUPLE_ISA);
+    tuple_print(recvbuf_ISA,sendcounts[world_rank]);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    //for(int h=K; h<string_length;h=h*2){
+    std::cout<<"world rank"<<world_rank<<std::endl;
+    //int B[sendcounts[world_rank]];
+    //reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank]);
+    int* B=reorder_to_stringorder(recvbuf_ISA,sendcounts[world_rank]);
+    std::cout<<"do you even do this?"<<std::endl;
+    for(int i=0;i<sendcounts[world_rank];i++){
+        std::cout<<B[i]<<",";
+    }
+    std::cout<<std::endl;
+        
+    //}
+
+    /*
+    
+    tuple_ISA global_array[string_length-K+1];
+    MPI_Gatherv(SA_B,sendcounts[world_rank], MPI_TUPLE_ISA,global_array, sendcounts,displs,MPI_TUPLE_ISA,0,MPI_COMM_WORLD);
+    //tuple_print(global_array,string_length-K+1);
+    MPI_Barrier(MPI_COMM_WORLD);
+    if(world_rank==0){
+        tuple_print(global_array,string_length-K+1);
+    }
+    */
+
+
+    /*
     int local_array[sendcounts[world_rank]];
     int local_SA[sendcounts[world_rank]];
     rebucketing(local_array, recvbuf, sendcounts[world_rank], displs[world_rank], local_SA);
@@ -196,30 +287,14 @@ int main(int argc, char **argv)
     }
     //free(recvbuf);
     MPI_Barrier(MPI_COMM_WORLD);
-    
-    for (int i = 0; i < sendcounts[world_rank]; i++)
-    {
-        std::cout<<"world rank"<< world_rank<< std::endl;
-        std::cout << local_SA[i] << std::endl;
-    }
-
-    /*
+       
     for(int h=K; h<string_length;h=h*2){
         
 
 
     }
-    */
     
-    /*
-    int global_array[string_length-K+1];
-    MPI_Gatherv(local_array,sendcounts[world_rank], MPI_INT,global_array, sendcounts,displs,MPI_INT,0,MPI_COMM_WORLD);
     
-    if(world_rank==0){
-        for(int i=0;i<string_length-K+1;i++){
-        std::cout<<global_array[i]<<",";
-    }
-    }
     */
 
     // Finalize the MPI environment.
