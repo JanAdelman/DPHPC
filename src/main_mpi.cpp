@@ -234,10 +234,8 @@ int main(int argc, char **argv)
 
     //for(int h=K; h<string_length;h=h*2){
     std::cout<<"world rank"<<world_rank<<std::endl;
-    //int B[sendcounts[world_rank]];
-    //reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank]);
-    int* B=reorder_to_stringorder(recvbuf_ISA,sendcounts[world_rank]);
-    std::cout<<"do you even do this?"<<std::endl;
+    int B[sendcounts[world_rank]];
+    reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank],displs[world_rank]);
     for(int i=0;i<sendcounts[world_rank];i++){
         std::cout<<B[i]<<",";
     }

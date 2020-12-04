@@ -242,18 +242,11 @@ void tuple_print(const tuple_ISA *input, size_t size)
     std::cout << "---" << std::endl;
 }
 
-
-int* reorder_to_stringorder(tuple_ISA *input,size_t size){
-    int* B=(int*) malloc(size * sizeof(int));
-    for(int i=0;i<size;i++){
-        *(B+((input+i)->SA))=(input+i)->B;
-        std::cout<<"SAshit:"<<(input+i)->SA<<std::endl;
-        std::cout<<"Bshit:"<<(input+i)->B<<std::endl;
+void reorder_to_stringorder(int* B,tuple_ISA *input,size_t size_inp, int displacement){
+    for(int i=0;i<size_inp;i++){
+        B[(input[i].SA)-displacement] = input[i].B;
     }
-    return B;
 }
-
-
 
 
 
