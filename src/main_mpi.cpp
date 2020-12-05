@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     //char input[] = "ABCDEFGHAHAHABCDEFGHAHAHABCDEFGHAHAH$";
     //char input[] = "AAAASBBBL"; //overlapping string of k=2 and p=4
     //char input[]="AAAAHHHKKKK";
-    char input[]="MISSISSIPPI$";
+    char input[]="MISSISSIPPIEI$";
     //AAA AAA AAH AHH HHH HHK HKK KKK KKK
     //0 1 2 3 4 5 6 7 8
     //0 1 2 3 
@@ -237,9 +237,20 @@ int main(int argc, char **argv)
     int B[sendcounts[world_rank]];
     reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank],displs[world_rank]);
     for(int i=0;i<sendcounts[world_rank];i++){
-        std::cout<<B[i]<<",";
+        std::cout<<B[i]<<"|";
     }
     std::cout<<std::endl;
+
+    int offsets[world_size];
+    for(int i=0;i<world_size;i++){
+        offsets[i]=displs[i]+sendcounts[i]-1;
+    }
+
+    //for(int h=K; h<string_length;h=h*2){
+        int B2[sendcounts[world_rank]];
+        std::copy(B,B+sendcounts[world_rank],B2);
+       shift_h(B2, 4, MPI_COMM_WORLD, world_rank, world_size, offsets, sendcounts[world_rank]);
+    //}
         
     //}
 

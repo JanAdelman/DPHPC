@@ -132,7 +132,7 @@ void print_char_array(const char *input, size_t size)
 void print_int_array(const int *input, size_t size)
 {
     for (int i = 0; i < size; ++i)
-        std::cout << input[i];
+        std::cout << input[i]<<",";
     std::cout << std::endl;
 }
 
