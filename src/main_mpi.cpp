@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     //char input[] = "agaagccagtactgcgacaaaggtaggacatggcgttgcaccaaatcagtaccggctccacaataattacaccatagggcaccgctatccgcgtgcgtca$";
     //char input[] = "ABCDEFGHAHAHABCDEFGHAHAHABCDEFGHAHAH$";
     //char input[] = "AAAASBBBL"; //overlapping string of k=2 and p=4
-    //char input[]="AAAAHHHKKKK";
+    //char input[]="NJSDJSNMCXNCJDKHFUIAAAJ";
     char input[]="MISSISSIPPI$";
     //AAA AAA AAH AHH HHH HHK HKK KKK KKK
     //0 1 2 3 4 5 6 7 8
@@ -172,6 +172,7 @@ int main(int argc, char **argv)
         now = now + sendcounts[i];
     }
     tuple_t recvbuf[sendcounts[world_rank]];
+    std::cout<<"before scattering"<<std::endl;
     MPI_Scatterv(global_result_kmers, sendcounts, displs, MPI_TUPLE_STRUCT, recvbuf, sendcounts[world_rank], MPI_TUPLE_STRUCT, 0, MPI_COMM_WORLD);
     tuple_ISA SA_B[sendcounts[world_rank]];//array of tuples on this processor
 
@@ -181,7 +182,9 @@ int main(int argc, char **argv)
         counts_bucket[i]=0;
     }
 
+    
     rebucketing(SA_B, recvbuf, sendcounts[world_rank], displs,counts_bucket,world_rank, world_size);
+    std::cout<<"rebucketing done"<<std::endl;
 
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -227,75 +230,53 @@ int main(int argc, char **argv)
         counts_filled[id]++;      
     }
 
+    
+
     //this array must be updated after every for loop
     tuple_ISA* recvbuf_ISA= probing_alltoallv(sendbufISA, displace_ISA, sendcounts[world_rank], world_size, counts_bucket, MPI_COMM_WORLD, world_rank, MPI_TUPLE_ISA);
-    tuple_print(recvbuf_ISA,sendcounts[world_rank]);
     MPI_Barrier(MPI_COMM_WORLD);
 
+    
     //for(int h=K; h<string_length;h=h*2){
     std::cout<<"world rank"<<world_rank<<std::endl;
-    //int B[sendcounts[world_rank]];
-    //reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank]);
-    int* B=reorder_to_stringorder(recvbuf_ISA,sendcounts[world_rank]);
-    std::cout<<"do you even do this?"<<std::endl;
-    for(int i=0;i<sendcounts[world_rank];i++){
-        std::cout<<B[i]<<",";
-    }
-    std::cout<<std::endl;
-        
-    //}
+    int B[sendcounts[world_rank]];
+    reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank],displs[world_rank]);
 
-    /*
+    int offsets[world_size];
+    for(int i=0;i<world_size;i++){
+        offsets[i]=displs[i]+sendcounts[i]-1;
+    }
+
+    int B2[sendcounts[world_rank]];
+    std::copy(B,B+sendcounts[world_rank],B2);
+
+    //SHIFTING 
+    int h = 1; 
+    naive_shift(B2, h, MPI_COMM_WORLD, world_rank, world_size, displs, sendcounts[world_rank], offsets);
+
     
-    tuple_ISA global_array[string_length-K+1];
-    MPI_Gatherv(SA_B,sendcounts[world_rank], MPI_TUPLE_ISA,global_array, sendcounts,displs,MPI_TUPLE_ISA,0,MPI_COMM_WORLD);
-    //tuple_print(global_array,string_length-K+1);
-    MPI_Barrier(MPI_COMM_WORLD);
-    if(world_rank==0){
-        tuple_print(global_array,string_length-K+1);
+    //TRIPLES 
+
+    triple_t triple_arr[sendcounts[world_rank]];
+    create_triple(B,B2,sendcounts[world_rank],displs[world_rank], triple_arr);
+    //std::cout << "-----" << std::endl;
+    
+    t_print(triple_arr,sendcounts[world_rank]);
+    
+    t_sort(triple_arr, sendcounts[world_rank]);
+
+    triple_t* global_result;
+    if (world_rank == MASTER){
+        global_result = (triple_t*) malloc(sizeof(triple_t) * (string_length - K + 1));
+        global_result = typename_t_sort(log2(world_size), world_rank, triple_arr, sendcounts[world_rank], MPI_COMM_WORLD);
     }
-    */
-
-
-    /*
-    int local_array[sendcounts[world_rank]];
-    int local_SA[sendcounts[world_rank]];
-    rebucketing(local_array, recvbuf, sendcounts[world_rank], displs[world_rank], local_SA);
-    MPI_Barrier(MPI_COMM_WORLD);
-    if (world_rank < world_size - 1)
+    else
     {
-        tuple_t final[1];
-        final[0].idx = local_array[sendcounts[world_rank] - 1];
-        memcpy(final[0].seq, recvbuf[sendcounts[world_rank] - 1].seq, sizeof(recvbuf[0].seq));
-        //final[0].seq=recvbuf[sendcounts[world_rank]-1].seq;
-        MPI_Send(&final, 1, MPI_TUPLE_STRUCT, world_rank + 1, 0, MPI_COMM_WORLD);
-    }
-    if (world_rank != 0)
-    {
-        tuple_t curr[1];
-        MPI_Recv(&curr, 1, MPI_TUPLE_STRUCT, world_rank - 1, 0, MPI_COMM_WORLD, NULL);
-        //tuple_t_print(curr, K);
-        int i = 0;
-        //std::cout<<char_array_comp(curr[0].seq,recvbuf[i].seq,K)<<std::endl;
-        //std::cout<<curr[0].idx<<std::endl;
-        while (char_array_comp(curr[0].seq, recvbuf[i].seq, K))
-        {
-            //std::cout<<"while_loop"<<std::endl;
-            local_array[i] = curr[0].idx;
-            i++;
-        }
-    }
-    //free(recvbuf);
-    MPI_Barrier(MPI_COMM_WORLD);
-       
-    for(int h=K; h<string_length;h=h*2){
-        
-
-
+        typename_t_sort(log2(world_size), world_rank, triple_arr, sendcounts[world_rank], MPI_COMM_WORLD);
     }
     
-    
-    */
+    if (world_rank == MASTER)
+       t_print(global_result,(string_length - K + 1));
 
     // Finalize the MPI environment.
     MPI_Finalize();

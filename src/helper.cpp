@@ -5,7 +5,6 @@
 #include <vector>
 #include <tuple>
 #include <type_traits>
-#include <numeric>
 
 /*
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
@@ -64,18 +63,12 @@ int bucket_id(int* displ, tuple_ISA &SA_B, int world_size){
     return world_size-1;
 }
 
-<<<<<<< HEAD
-int bucket_id(int* displ, triple_t &input, int world_size){
-    for(int i=0;i<world_size-1;i++){
-        if (displ[i]<=input.b && displ[i+1]>input.b){
-=======
 int bucket_id_shift(int* displ, int B, int world_size, int* sendcounts){
     if(B>displ[world_size-1]+sendcounts[world_size-1]-1){
         return -1;
     }
     for(int i=0;i<world_size-1;i++){
         if (displ[i]<=B && displ[i+1]>B){
->>>>>>> bf5c29a23b58c42723967178104dc9e13074440a
             //std::cout<<"SA "<<SA_B.SA<<"i "<<i<<std::endl;
             return i;
         }
@@ -98,31 +91,6 @@ void rebucketing(tuple_ISA *SA_B,tuple_t *kmers, size_t size, int* displ, int* c
         else{
             SA_B[i].B=displ[world_rank]+i;
             SA_B[i].SA=kmers[i].idx;
-            int id=bucket_id(displ,SA_B[i],world_size);
-            counts[id]+=1;
-        }
-    }
-}
-
-
-void rebucketing(tuple_ISA *SA_B,triple_t *input, size_t size, int* displ, int* counts, int world_rank, int world_size){
-    SA_B[0].B=displ[world_rank];
-    SA_B[0].SA=input[0].idx;
-    int id_zero=bucket_id(displ,SA_B[0],world_size);
-    counts[id_zero]+=1;
-
-    std::cout << "starting loop" << std::endl; 
-    for(int i=1;i<size;i++){
-        if((!(input[i].b == input[i-1].b) or !(input[i].b2 == input[i-1].b2))){
-            std::cout <<i<<" >>" <<input[i].b << " " << input[i-1].b << "|" << input[i].b2 << " " << input[i-1].b2<<std::endl;
-            SA_B[i].B=SA_B[i-1].B;
-            SA_B[i].SA=input[i].idx;
-            int id=bucket_id(displ,SA_B[i],world_size);
-            counts[id]+=1;
-        }
-        else{
-            SA_B[i].B=displ[world_rank]+i;
-            SA_B[i].SA=input[i].idx;
             int id=bucket_id(displ,SA_B[i],world_size);
             counts[id]+=1;
         }
@@ -177,11 +145,7 @@ void print_char_array(const char *input, size_t size)
 void print_int_array(const int *input, size_t size)
 {
     for (int i = 0; i < size; ++i)
-<<<<<<< HEAD
-        std::cout << input[i] << ",";
-=======
         std::cout << input[i]<<",";
->>>>>>> bf5c29a23b58c42723967178104dc9e13074440a
     std::cout << std::endl;
 }
 
@@ -274,9 +238,9 @@ void t_print(const triple_t *input, size_t size)
 {
     for (int i = 0; i < size; i++)
     {
-        std::cout << "    B: " << (input + i)->b << std::endl;
-        std::cout << "    B2: " << (input + i)->b2 << std::endl;
-        std::cout << "    SA: " << (input + i)->idx << std::endl;
+        std::cout << "    B: " << input[i].b << std::endl;
+        std::cout << "    B2: " << input[i].b2 << std::endl;
+        std::cout << "    SA: " << input[i].idx << std::endl;
     }
     std::cout << "---" << std::endl;
 }
@@ -298,22 +262,12 @@ void tuple_print(const tuple_ISA *input, size_t size)
 
 */
 
-<<<<<<< HEAD
-int* reorder_to_stringorder(tuple_ISA *input,size_t size){
-    int* B=(int*) malloc(size * sizeof(int));
-    for(int i=0;i<size;i++){
-        std::cout << input[i].B << std::endl;
-        *(B + input[i].SA) = input[i].B;
-        //*(B+((input+i)->SA))=(input+i)->B;
-        std::cout<<"Bshit:"<<*(B + input[i].SA)<<std::endl;
-=======
 void tuple_print(const tuple_ISA *input, size_t size)
 {
     for (int i = 0; i < size; i++)
     {
         std::cout << " B: " << (input + i)->B << std::endl;
         std::cout << " SA: " << (input + i)->SA << std::endl;
->>>>>>> bf5c29a23b58c42723967178104dc9e13074440a
     }
     std::cout << "---" << std::endl;
 }
@@ -392,17 +346,17 @@ tuple_t *typename_t_sort(int height, int id, tuple_t localArray[], int size, MPI
     return NULL;
 }
 
-triple_t* create_triple(int* B, int* B2, int size,int displ){
-    triple_t triple_arr[size];
+void create_triple(int* B, int* B2, int size,int displ, triple_t* triple_arr){
+    //triple_t triple_arr[size];
     for(int i=0;i<size;i++){
         triple_arr[i].b=B[i];
-        std::cout<<"B:"<<triple_arr[i].b<<std::endl;
+        //std::cout<<"B:"<<triple_arr[i].b<<std::endl;
         triple_arr[i].b2=B2[i];
-        std::cout<<"B2:"<<triple_arr[i].b2<<std::endl;
+        //std::cout<<"B2:"<<triple_arr[i].b2<<std::endl;
         triple_arr[i].idx=i+displ;  
-        std::cout<<"SA:"<<triple_arr[i].idx<<std::endl;
+        //std::cout<<"SA:"<<triple_arr[i].idx<<std::endl;
     }
-    return triple_arr;
+    //return triple_arr;
     
 }
 triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, MPI_Comm comm)
@@ -471,71 +425,6 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
     return NULL;
 }
 
-
-/*
-void shift_h(int *input, const int h, MPI_Comm comm, const int world_rank,
-             const int world_size, int *offsets, int local_length, int* new_idx)
-{
-
-    int local_end_len = offsets[world_rank];
-    int deleted_size = 0;
-
-    bool wrap = false; // Local section will be appended to the end
-
-    for (int i = 0; i < world_size; i++){
-        if (offsets[i] < h) //This offset will still be deleted
-            deleted_size = offsets[i] + 1;
-    }
-   if (h > local_end_len) // This section is entirely shifted away
-   { 
-        std::fill(input,
-            input + local_length, 0);
-        wrap = true; 
-   }
-    else {
-        int shift_by = h - deleted_size;
-
-        if ((world_rank != 0) and (offsets[world_rank - 1]>=h))
-        {
-            MPI_Send(input, shift_by, MPI_INT, world_rank - 1, 0, comm);
-        }
-
-        std::copy(input + shift_by, input + local_length, input);
-
-        if (world_rank != world_size - 1)
-        {
-            MPI_Recv(input + local_length - shift_by, shift_by,
-                     MPI_INT,
-                     world_rank + 1, 0,
-                     comm, MPI_STATUS_IGNORE);
-            //Write into input at end
-        }
-        else
-        {
-            std::fill(input + local_length - shift_by,
-                      input + local_length, 0);
-        }
-    }
-
-    //Create new index 
-    int local_start_idx = offsets[world_rank] - local_length - deleted_size + 1;
-
-    //Consider not sending index vut only new order of buckets
-    
-    if (wrap)
-        std::iota(new_idx, new_idx + local_length,
-            offsets[world_size-1] - deleted_size  + 1 + (local_end_len - local_length + 1));
-    else
-        std::iota(new_idx, new_idx + local_length, local_start_idx);
-
-
-    std::cout << "------"<<(local_end_len  ) <<std::endl;
-
-    std::cout << world_rank <<std::endl;
-
-    print_int_array(input, local_length);
-    print_int_array(new_idx, local_length);
-}
 
     void naive_shift(int *input, const int h, MPI_Comm comm, const int world_rank, const int world_size, int *offsets_start, int local_length, int *offsets_end){
              //print_int_array(input, local_length);
@@ -706,8 +595,8 @@ void shift_h(int *input, const int h, MPI_Comm comm, const int world_rank,
                 
                 
             }
-             std::cout << "Result on rank: " << world_rank << std::endl; 
-             print_int_array(input, local_length);
+            // std::cout << "Result on rank: " << world_rank << std::endl; 
+            // print_int_array(input, local_length);
    
     }
 
@@ -744,6 +633,79 @@ bool all_singleton (tuple_ISA *input, MPI_Comm comm, const int world_rank,
             singleton = false;
     }
     if (input[local_length - 1].SA == after_end[0].SA)
+        singleton = false;
+
+    std::cout << singleton <<std::endl;
+    return singleton; 
+}
+
+
+
+/*
+void shift_h(int *input, const int h, MPI_Comm comm, const int world_rank,
+             const int world_size, int *offsets, int local_length)
+{
+
+    int local_end_len = offsets[world_rank];
+    int deleted_size = 0;
+
+    for (int i = 0; i < world_size; i++){
+        if (offsets[i] < h) //This offset will still be deleted
+            deleted_size = offsets[i] + 1;
+    }
+   if (h > local_end_len) // This section is entirely shifted away
+   { 
+        std::fill(input,
+            input + local_length, 0);
+   }
+    else {
+        int shift_by = h - deleted_size;
+
+        if ((world_rank != 0) and (offsets[world_rank - 1]>=h))
+        {
+            MPI_Send(input, shift_by, MPI_INT, world_rank - 1, 0, comm);
+        }
+
+        std::copy(input + shift_by, input + local_length, input);
+
+        if (world_rank != world_size - 1)
+        {
+            MPI_Recv(input + local_length - shift_by, shift_by,
+                     MPI_INT,
+                     world_rank + 1, 0,
+                     comm, MPI_STATUS_IGNORE);
+            //Write into input at end
+        }
+        else
+        {
+            std::fill(input + local_length - shift_by,
+                      input + local_length, 0);
+        }
+    }
+    print_int_array(input, local_length);
+}
+
+bool all_singleton (int *input, MPI_Comm comm, const int world_rank,
+             const int world_size, int local_length){
+
+    if (world_rank != 0)
+    {
+        MPI_Send(input, 1, MPI_INT, world_rank - 1, 0, comm);
+    }
+
+    int after_end[1] = {-1}; 
+    if (world_rank != world_size - 1)
+    {
+        MPI_Recv(after_end, 1, MPI_INT, world_rank + 1, 0, comm, MPI_STATUS_IGNORE);
+    }
+
+    bool singleton = true;
+
+    for (int i = 0; i < local_length - 1; i++){
+        if (input[i] == input[i + 1])
+            singleton = false;
+    }
+    if (input[local_length - 1] == after_end[0])
         singleton = false;
 
     std::cout << singleton <<std::endl;
