@@ -5,6 +5,7 @@
 #include <vector>
 #include <tuple>
 #include <type_traits>
+#include <numeric>
 
 /*
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
@@ -63,6 +64,16 @@ int bucket_id(int* displ, tuple_ISA &SA_B, int world_size){
     return world_size-1;
 }
 
+int bucket_id(int* displ, triple_t &input, int world_size){
+    for(int i=0;i<world_size-1;i++){
+        if (displ[i]<=input.b && displ[i+1]>input.b){
+            //std::cout<<"SA "<<SA_B.SA<<"i "<<i<<std::endl;
+            return i;
+        }
+    }
+    return world_size-1;
+}
+
 void rebucketing(tuple_ISA *SA_B,tuple_t *kmers, size_t size, int* displ, int* counts, int world_rank, int world_size){
     SA_B[0].B=displ[world_rank];
     SA_B[0].SA=kmers[0].idx;
@@ -78,6 +89,31 @@ void rebucketing(tuple_ISA *SA_B,tuple_t *kmers, size_t size, int* displ, int* c
         else{
             SA_B[i].B=displ[world_rank]+i;
             SA_B[i].SA=kmers[i].idx;
+            int id=bucket_id(displ,SA_B[i],world_size);
+            counts[id]+=1;
+        }
+    }
+}
+
+
+void rebucketing(tuple_ISA *SA_B,triple_t *input, size_t size, int* displ, int* counts, int world_rank, int world_size){
+    SA_B[0].B=displ[world_rank];
+    SA_B[0].SA=input[0].idx;
+    int id_zero=bucket_id(displ,SA_B[0],world_size);
+    counts[id_zero]+=1;
+
+    std::cout << "starting loop" << std::endl; 
+    for(int i=1;i<size;i++){
+        if((!(input[i].b == input[i-1].b) or !(input[i].b2 == input[i-1].b2))){
+            std::cout <<i<<" >>" <<input[i].b << " " << input[i-1].b << "|" << input[i].b2 << " " << input[i-1].b2<<std::endl;
+            SA_B[i].B=SA_B[i-1].B;
+            SA_B[i].SA=input[i].idx;
+            int id=bucket_id(displ,SA_B[i],world_size);
+            counts[id]+=1;
+        }
+        else{
+            SA_B[i].B=displ[world_rank]+i;
+            SA_B[i].SA=input[i].idx;
             int id=bucket_id(displ,SA_B[i],world_size);
             counts[id]+=1;
         }
@@ -132,7 +168,7 @@ void print_char_array(const char *input, size_t size)
 void print_int_array(const int *input, size_t size)
 {
     for (int i = 0; i < size; ++i)
-        std::cout << input[i];
+        std::cout << input[i] << ",";
     std::cout << std::endl;
 }
 
@@ -246,9 +282,10 @@ void tuple_print(const tuple_ISA *input, size_t size)
 int* reorder_to_stringorder(tuple_ISA *input,size_t size){
     int* B=(int*) malloc(size * sizeof(int));
     for(int i=0;i<size;i++){
-        *(B+((input+i)->SA))=(input+i)->B;
-        std::cout<<"SAshit:"<<(input+i)->SA<<std::endl;
-        std::cout<<"Bshit:"<<(input+i)->B<<std::endl;
+        std::cout << input[i].B << std::endl;
+        *(B + input[i].SA) = input[i].B;
+        //*(B+((input+i)->SA))=(input+i)->B;
+        std::cout<<"Bshit:"<<*(B + input[i].SA)<<std::endl;
     }
     return B;
 }
@@ -389,11 +426,13 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
 }
 
 void shift_h(int *input, const int h, MPI_Comm comm, const int world_rank,
-             const int world_size, int *offsets, int local_length)
+             const int world_size, int *offsets, int local_length, int* new_idx)
 {
 
     int local_end_len = offsets[world_rank];
     int deleted_size = 0;
+
+    bool wrap = false; // Local section will be appended to the end
 
     for (int i = 0; i < world_size; i++){
         if (offsets[i] < h) //This offset will still be deleted
@@ -403,6 +442,7 @@ void shift_h(int *input, const int h, MPI_Comm comm, const int world_rank,
    { 
         std::fill(input,
             input + local_length, 0);
+        wrap = true; 
    }
     else {
         int shift_by = h - deleted_size;
@@ -428,30 +468,234 @@ void shift_h(int *input, const int h, MPI_Comm comm, const int world_rank,
                       input + local_length, 0);
         }
     }
+
+    //Create new index 
+    int local_start_idx = offsets[world_rank] - local_length - deleted_size + 1;
+
+    //Consider not sending index vut only new order of buckets
+    
+    if (wrap)
+        std::iota(new_idx, new_idx + local_length,
+            offsets[world_size-1] - deleted_size  + 1 + (local_end_len - local_length + 1));
+    else
+        std::iota(new_idx, new_idx + local_length, local_start_idx);
+
+
+    std::cout << "------"<<(local_end_len  ) <<std::endl;
+
+    std::cout << world_rank <<std::endl;
+
     print_int_array(input, local_length);
+    print_int_array(new_idx, local_length);
 }
 
-bool all_singleton (int *input, MPI_Comm comm, const int world_rank,
+    void naive_shift(int *input, const int h, MPI_Comm comm, const int world_rank, const int world_size, int *offsets_start, int local_length, int *offsets_end){
+             //print_int_array(input, local_length);
+            
+            if (world_rank == 0)
+            {
+                //std::cout <<h<<" "<<local_length << std::endl;
+                if (h < local_length){
+                    std::copy(input + h, input + local_length, input);
+                    std::cout <<"Copying on " << world_rank << " "<< input[0] <<std::endl;
+                }
+                //print_int_array(input, local_length);
+            }
+            else{
+                int shift_start = offsets_start[world_rank] - h;
+                int shift_end = offsets_end[world_rank] - h;
+
+                for (int rank = world_rank; rank >= 0; rank--){//Look at previous buckets
+
+                    //std::cout<<world_rank <<" "<< shift_start<<" "<< shift_end << " "<< offsets_start[rank] <<" " <<offsets_end[rank] << std::endl; 
+                    if ((shift_start >= offsets_start[rank]) and (shift_start <= offsets_end[rank])){//Start is within the offsets of this rank
+                        /*
+                        std::cout << shift_end << 
+                        if (shift_end >= offsets_start[world_rank]){//sending to the direct neighbour
+                            MPI_Send(input, offsets_end[rank] - shift_start + 1, MPI_INT, rank, 0, comm);
+                            std::cout << world_rank << "SENDING TO (1)" << rank << std::endl;
+                            if (h < local_length)
+                                std::copy(input + h, input + local_length, input);
+                            
+                            break; 
+                        }
+                        */
+                        if (shift_end >= offsets_start[world_rank]){ //End is also within bounds -> Only send to one porcessor
+
+                            std::cout << world_rank << "SENDING TO (MODE 1)" << rank << std::endl;
+                            std::cout << "Sending size: " << local_length << " Inserting at: " << shift_start << std::endl; 
+                            
+                            MPI_Send(input, h, MPI_INT, rank, shift_start, comm);
+
+                            std::copy(input + h, input + local_length, input);
+                            break;
+                        }
+                        else if (shift_end <= offsets_end[rank])
+                        {
+                            std::cout << world_rank << "SENDING TO (MODE 2)" << rank << std::endl;
+                            std::cout << "Sending size: " << local_length << " Inserting at: " << shift_start << std::endl; 
+                            
+                            MPI_Send(input, local_length, MPI_INT, rank, shift_start, comm);
+                        }
+                        else if (shift_end >= offsets_start[rank + 1])
+                        {
+                            std::cout << world_rank << "SENDING TO (MODE 3)" << rank << std::endl;
+                            std::cout << "Sending size: " << local_length << " Inserting at: " << shift_start << std::endl; 
+
+                            MPI_Send(input, offsets_end[rank] - shift_start + 1, MPI_INT, rank, shift_start, comm); //From calculated start to end of bucket -> Overlapping to next
+                            MPI_Send(input + offsets_end[rank] - shift_start + 1
+                                ,local_length - (offsets_end[rank] - shift_start + 1), MPI_INT, rank + 1, offsets_start[rank+1], comm); //MPI send end piece to rank where end is found; from start of bucket to calculated end
+                            break;
+                            
+                        }
+                        else
+                        {
+                            std::cout << "Error 101 on rank "<<world_rank << std::endl;
+                        }
+                        
+    
+                    }
+                }
+                if ((shift_start < 0) and (shift_end)>= 0)
+                {
+                        std::cout << world_rank << "SENDING TO (MODE 4)" << 0 << std::endl;
+                        MPI_Send(input + local_length - (shift_end + 1), shift_end + 1, MPI_INT, 0, 0, comm);
+                }
+                
+
+            } 
+
+
+            //Recieving 
+            if (((offsets_end[world_size - 1] - offsets_end[world_rank]) >= h)) {//No zeroes are needed
+                
+                if (local_length > h){//Local shifting from direct neghbour
+                    //MPI_Recv(input + local_length - h, h, MPI_INT, world_rank + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);//Recieve start MPI_recv(input,number_amount, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status)//Recieve start 
+                    
+                    std::cout << "Awaiting recieve " <<world_rank<< std::endl;
+                    MPI_Status status;
+                    int position; 
+                    int number_amount; 
+                    MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+                    position = status.MPI_TAG;
+                    MPI_Get_count(&status, MPI_INT, &number_amount);
+
+                    
+                    MPI_Recv(input+position-offsets_start[world_rank],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start 
+                    std::cout << "Recieved " <<world_rank<< std::endl; 
+                }
+                else
+                {
+                    std::cout << "Awaiting recieve " <<world_rank<< std::endl;
+                    MPI_Status status;
+                    int position; 
+                    int number_amount; 
+                    MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+                    position = status.MPI_TAG;
+                    MPI_Get_count(&status, MPI_INT, &number_amount);
+
+                    std::cout << "position1" << position << std::endl;
+                    
+                    MPI_Recv(input+position-offsets_start[world_rank],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start 
+                    std::cout << "Recieved " <<world_rank<< std::endl; 
+
+                    if (number_amount < local_length){//If not enough recieve more 
+
+                        std::cout << "Awaiting recieve more " <<world_rank<< std::endl;
+                        MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+                        position = status.MPI_TAG;
+                        MPI_Get_count(&status, MPI_INT, &number_amount);
+                        
+                        std::cout << "position2" << position << std::endl;
+                        
+                        MPI_Recv(input+position-offsets_start[world_rank],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start
+                        std::cout << "Recieved more" <<world_rank<< std::endl; 
+                    }
+                    /*
+                    std::cout << "Recieving locally"<<world_rank<< std::endl;
+                    MPI_Status status;
+                    int number_amount; 
+                    MPI_Recv(input,local_length, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);//Recieve start 
+                    MPI_Get_count(&status, MPI_INT, &number_amount);
+                    std::cout << "Amount " << world_rank <<" "<< number_amount <<std::endl;
+                    if (number_amount < local_length){//If not enough recieve more 
+
+                        std::cout << world_rank << " waiting for more!" << std::endl;
+                        MPI_Recv(input + number_amount,local_length - number_amount, MPI_INT, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, &status);//On a difffernt tagstream 
+                    }
+                    */
+                        
+                }
+            }
+            else if ((offsets_end[world_size -1] + 1 - offsets_start[world_rank] <= h))//Only zeroes are filled
+            {
+                std::cout << "Zeroes are added to rank " << world_rank <<std::endl;  
+                std::fill(input + local_length - h, input + local_length, 0);
+            }
+            else { //Mixed case
+                std::cout << "Entering mixed case on rank " << world_rank <<std::endl;  
+
+                if (world_rank != world_size - 1){
+                    MPI_Status status;
+                    int position; 
+                    int number_amount; 
+                    std::cout << "Awaiting recieve " <<world_rank<< std::endl;
+                    MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+                    position = status.MPI_TAG;
+                    MPI_Get_count(&status, MPI_INT, &number_amount);
+
+                    
+                    MPI_Recv(input+position-offsets_start[world_rank],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start 
+                    std::cout << "Recieved " <<world_rank<< std::endl; 
+
+                    //Fill the rest with zeroes 
+                    std::fill(input + number_amount, input + local_length, 0);
+                }
+                else
+                {
+                    std::fill(input + local_length - h, input + local_length, 0);
+                }
+                
+                
+            }
+             std::cout << "Result on rank: " << world_rank << std::endl; 
+             print_int_array(input, local_length);
+   
+    }
+
+bool all_singleton (tuple_ISA *input, MPI_Comm comm, const int world_rank,
              const int world_size, int local_length){
+
+    MPI_Datatype MPI_TUPLE_ISA;
+    int lengths_ISA[2] = {1, 1};
+    const MPI_Aint displacements_ISA[2] = {0, sizeof(int)};
+    MPI_Datatype types_ISA[2] = {MPI_INT, MPI_INT};
+    MPI_Type_create_struct(2, lengths_ISA, displacements_ISA, types_ISA, &MPI_TUPLE_ISA);
+    MPI_Type_commit(&MPI_TUPLE_ISA);
 
     if (world_rank != 0)
     {
-        MPI_Send(input, 1, MPI_INT, world_rank - 1, 0, comm);
+        MPI_Send(input, 1, MPI_TUPLE_ISA, world_rank - 1, 0, comm);
     }
 
-    int after_end[1] = {-1}; 
+    tuple_ISA after_end[1]; 
     if (world_rank != world_size - 1)
     {
-        MPI_Recv(after_end, 1, MPI_INT, world_rank + 1, 0, comm, MPI_STATUS_IGNORE);
+        MPI_Recv(after_end, 1, MPI_TUPLE_ISA, world_rank + 1, 0, comm, MPI_STATUS_IGNORE);
     }
+    else
+    {
+        after_end[0].SA = -1;
+    }
+    
 
     bool singleton = true;
 
     for (int i = 0; i < local_length - 1; i++){
-        if (input[i] == input[i + 1])
+        if (input[i].SA == input[i + 1].SA)
             singleton = false;
     }
-    if (input[local_length - 1] == after_end[0])
+    if (input[local_length - 1].SA == after_end[0].SA)
         singleton = false;
 
     std::cout << singleton <<std::endl;
