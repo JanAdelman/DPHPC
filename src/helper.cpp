@@ -64,9 +64,18 @@ int bucket_id(int* displ, tuple_ISA &SA_B, int world_size){
     return world_size-1;
 }
 
+<<<<<<< HEAD
 int bucket_id(int* displ, triple_t &input, int world_size){
     for(int i=0;i<world_size-1;i++){
         if (displ[i]<=input.b && displ[i+1]>input.b){
+=======
+int bucket_id_shift(int* displ, int B, int world_size, int* sendcounts){
+    if(B>displ[world_size-1]+sendcounts[world_size-1]-1){
+        return -1;
+    }
+    for(int i=0;i<world_size-1;i++){
+        if (displ[i]<=B && displ[i+1]>B){
+>>>>>>> bf5c29a23b58c42723967178104dc9e13074440a
             //std::cout<<"SA "<<SA_B.SA<<"i "<<i<<std::endl;
             return i;
         }
@@ -168,7 +177,11 @@ void print_char_array(const char *input, size_t size)
 void print_int_array(const int *input, size_t size)
 {
     for (int i = 0; i < size; ++i)
+<<<<<<< HEAD
         std::cout << input[i] << ",";
+=======
+        std::cout << input[i]<<",";
+>>>>>>> bf5c29a23b58c42723967178104dc9e13074440a
     std::cout << std::endl;
 }
 
@@ -268,17 +281,24 @@ void t_print(const triple_t *input, size_t size)
     std::cout << "---" << std::endl;
 }
 
+/*
+
 void tuple_print(const tuple_ISA *input, size_t size)
 {
     for (int i = 0; i < size; i++)
     {
         std::cout << "    B: " << (input + i)->B << std::endl;
         std::cout << "    SA: " << (input + i)->SA << std::endl;
+        std::cout << "B: " << (input + i)->b << std::endl;
+        std::cout << "B2: " << (input + i)->b2 << std::endl;
+        std::cout << "SA: " << (input + i)->idx << std::endl;
     }
     std::cout << "---" << std::endl;
 }
 
+*/
 
+<<<<<<< HEAD
 int* reorder_to_stringorder(tuple_ISA *input,size_t size){
     int* B=(int*) malloc(size * sizeof(int));
     for(int i=0;i<size;i++){
@@ -286,11 +306,23 @@ int* reorder_to_stringorder(tuple_ISA *input,size_t size){
         *(B + input[i].SA) = input[i].B;
         //*(B+((input+i)->SA))=(input+i)->B;
         std::cout<<"Bshit:"<<*(B + input[i].SA)<<std::endl;
+=======
+void tuple_print(const tuple_ISA *input, size_t size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        std::cout << " B: " << (input + i)->B << std::endl;
+        std::cout << " SA: " << (input + i)->SA << std::endl;
+>>>>>>> bf5c29a23b58c42723967178104dc9e13074440a
     }
-    return B;
+    std::cout << "---" << std::endl;
 }
 
-
+void reorder_to_stringorder(int* B,tuple_ISA *input,size_t size_inp, int displacement){
+    for(int i=0;i<size_inp;i++){
+        B[(input[i].SA)-displacement] = input[i].B;
+    }
+}
 
 
 
@@ -359,6 +391,20 @@ tuple_t *typename_t_sort(int height, int id, tuple_t localArray[], int size, MPI
     }
     return NULL;
 }
+
+triple_t* create_triple(int* B, int* B2, int size,int displ){
+    triple_t triple_arr[size];
+    for(int i=0;i<size;i++){
+        triple_arr[i].b=B[i];
+        std::cout<<"B:"<<triple_arr[i].b<<std::endl;
+        triple_arr[i].b2=B2[i];
+        std::cout<<"B2:"<<triple_arr[i].b2<<std::endl;
+        triple_arr[i].idx=i+displ;  
+        std::cout<<"SA:"<<triple_arr[i].idx<<std::endl;
+    }
+    return triple_arr;
+    
+}
 triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, MPI_Comm comm)
 {
     MPI_Datatype MPI_TRIPLE_STRUCT;
@@ -425,6 +471,8 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
     return NULL;
 }
 
+
+/*
 void shift_h(int *input, const int h, MPI_Comm comm, const int world_rank,
              const int world_size, int *offsets, int local_length, int* new_idx)
 {
