@@ -63,6 +63,19 @@ int bucket_id(int* displ, tuple_ISA &SA_B, int world_size){
     return world_size-1;
 }
 
+int bucket_id_shift(int* displ, int B, int world_size, int* sendcounts){
+    if(B>displ[world_size-1]+sendcounts[world_size-1]-1){
+        return -1;
+    }
+    for(int i=0;i<world_size-1;i++){
+        if (displ[i]<=B && displ[i+1]>B){
+            //std::cout<<"SA "<<SA_B.SA<<"i "<<i<<std::endl;
+            return i;
+        }
+    }
+    return world_size-1;
+}
+
 void rebucketing(tuple_ISA *SA_B,tuple_t *kmers, size_t size, int* displ, int* counts, int world_rank, int world_size){
     SA_B[0].B=displ[world_rank];
     SA_B[0].SA=kmers[0].idx;
@@ -232,12 +245,29 @@ void t_print(const triple_t *input, size_t size)
     std::cout << "---" << std::endl;
 }
 
+/*
+
 void tuple_print(const tuple_ISA *input, size_t size)
 {
     for (int i = 0; i < size; i++)
     {
         std::cout << "    B: " << (input + i)->B << std::endl;
         std::cout << "    SA: " << (input + i)->SA << std::endl;
+        std::cout << "B: " << (input + i)->b << std::endl;
+        std::cout << "B2: " << (input + i)->b2 << std::endl;
+        std::cout << "SA: " << (input + i)->idx << std::endl;
+    }
+    std::cout << "---" << std::endl;
+}
+
+*/
+
+void tuple_print(const tuple_ISA *input, size_t size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        std::cout << " B: " << (input + i)->B << std::endl;
+        std::cout << " SA: " << (input + i)->SA << std::endl;
     }
     std::cout << "---" << std::endl;
 }
@@ -315,6 +345,20 @@ tuple_t *typename_t_sort(int height, int id, tuple_t localArray[], int size, MPI
     }
     return NULL;
 }
+
+triple_t* create_triple(int* B, int* B2, int size,int displ){
+    triple_t triple_arr[size];
+    for(int i=0;i<size;i++){
+        triple_arr[i].b=B[i];
+        std::cout<<"B:"<<triple_arr[i].b<<std::endl;
+        triple_arr[i].b2=B2[i];
+        std::cout<<"B2:"<<triple_arr[i].b2<<std::endl;
+        triple_arr[i].idx=i+displ;  
+        std::cout<<"SA:"<<triple_arr[i].idx<<std::endl;
+    }
+    return triple_arr;
+    
+}
 triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, MPI_Comm comm)
 {
     MPI_Datatype MPI_TRIPLE_STRUCT;
@@ -381,6 +425,8 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
     return NULL;
 }
 
+
+/*
 void shift_h(int *input, const int h, MPI_Comm comm, const int world_rank,
              const int world_size, int *offsets, int local_length)
 {
