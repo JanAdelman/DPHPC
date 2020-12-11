@@ -9,5 +9,9 @@ compile-run:
 	mpicxx -std=c++2a main_mpi.cpp -o main
 	mpiexec --oversubscribe -np 4 ./main --mca orte_base_help_aggregate 0
 
+debug:
+	mpicxx -g -std=c++2a main_mpi.cpp -o main
+	mpiexec -n 4 gdb ./main
+
 clean:
 	rm -f main
