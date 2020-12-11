@@ -97,6 +97,28 @@ void rebucketing(tuple_ISA *SA_B,tuple_t *kmers, size_t size, int* displ, int* c
     }
 }
 
+//TRIPLET
+void rebucketing(tuple_ISA *SA_B,triple_t *input, size_t size, int* displ, int world_rank, int world_size,int* counts){
+    SA_B[0].B=displ[world_rank];
+    SA_B[0].SA=input[0].idx;
+    int id_zero=bucket_id(displ,SA_B[0],world_size);
+    //counts[id_zero]+=1;
+    for(int i=1;i<size;i++){
+        if((input[i-1].b == input[i].b and input[i-1].b2 == input[i].b2)){
+            SA_B[i].B=SA_B[i-1].B;
+            SA_B[i].SA=input[i].idx;
+            int id=bucket_id(displ,SA_B[i],world_size);
+            counts[id]+=1;
+        }
+        else{
+            SA_B[i].B=displ[world_rank]+i;
+            SA_B[i].SA=input[i].idx;
+            int id=bucket_id(displ,SA_B[i],world_size);
+            counts[id]+=1;
+        }
+    }
+}
+
 
 tuple_ISA* probing_alltoallv(tuple_ISA* sendbuf, int* sdispls, int size, int world_size, int* sendcounts, MPI_Comm comm, int world_rank,MPI_Datatype TYPE){
 
@@ -195,9 +217,9 @@ bool tuple_t_compare(const tuple_t &a, const tuple_t &b)
     
     //return !std::lexicographical_compare(b.seq, b.seq + K, a.seq, a.seq + K);
 }
-bool triple_t_compare(const triple_t &b, const triple_t &a)
+bool triple_t_compare(const triple_t &a, const triple_t &b)
 {
-    if (b.b < a.b)
+    if (a.b < b.b)
         return true;
     else if (a.b > b.b)
         return false;
@@ -243,6 +265,16 @@ void t_print(const triple_t *input, size_t size)
         std::cout << "    SA: " << input[i].idx << std::endl;
     }
     std::cout << "---" << std::endl;
+}
+
+void t_print_flat(const triple_t *input, size_t size, int rank, int target)
+{
+    std::cout <<rank<<"(from):(to)"<<target<< "->";
+    for (int i = 0; i < size; i++)
+    {
+        std::cout << input[i].b <<","<< input[i].b2<<","<<input[i].idx<<";";//  << std::endl;
+    }
+    std::cout << std::endl;
 }
 
 /*
@@ -363,7 +395,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
 {
     MPI_Datatype MPI_TRIPLE_STRUCT;
     int lengths_triple[3] = {1, 1, 1};
-    const MPI_Aint displacements_triple[3] = {0, sizeof(int), sizeof(int)};
+    const MPI_Aint displacements_triple[3] = {0, sizeof(int), 2*sizeof(int)};
     MPI_Datatype types_triple[3] = {MPI_INT, MPI_INT, MPI_INT};
     MPI_Type_create_struct(3, lengths_triple,
                            displacements_triple, types_triple, &MPI_TRIPLE_STRUCT);
@@ -392,6 +424,9 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
             // allocate memory and receive array of right child
             half2 = (triple_t *)malloc(recieved_size * sizeof(triple_t));
             MPI_Recv(half2, recieved_size, MPI_TRIPLE_STRUCT, rightChild, 0, comm, &status);
+            //std::cout<<id<<rightChild<<std::endl;
+           
+            //t_print_flat(half2, recieved_size , rightChild, id);
 
             mergeResult = (triple_t *)malloc((size + recieved_size) * sizeof(triple_t));
             // merge half1 and half2 into mergeResult
@@ -415,6 +450,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
         else
         { // right child
             // send local array to parent
+            
             MPI_Send(half1, size, MPI_TRIPLE_STRUCT, parent, 0, comm);
 
             if (local_height != 0)
@@ -422,6 +458,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
             local_height = height;
         }
     }
+
     return NULL;
 }
 
@@ -434,7 +471,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
                 //std::cout <<h<<" "<<local_length << std::endl;
                 if (h < local_length){
                     std::copy(input + h, input + local_length, input);
-                    std::cout <<"Copying on " << world_rank << " "<< input[0] <<std::endl;
+                    //std::cout <<"Copying on " << world_rank << " "<< input[0] <<std::endl;
                 }
                 //print_int_array(input, local_length);
             }
@@ -459,8 +496,8 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
                         */
                         if (shift_end >= offsets_start[world_rank]){ //End is also within bounds -> Only send to one porcessor
 
-                            std::cout << world_rank << "SENDING TO (MODE 1)" << rank << std::endl;
-                            std::cout << "Sending size: " << local_length << " Inserting at: " << shift_start << std::endl; 
+                            //std::cout << world_rank << "SENDING TO (MODE 1)" << rank << std::endl;
+                            //std::cout << "Sending size: " << local_length << " Inserting at: " << shift_start << std::endl; 
                             
                             MPI_Send(input, h, MPI_INT, rank, shift_start, comm);
 
@@ -469,15 +506,15 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
                         }
                         else if (shift_end <= offsets_end[rank])
                         {
-                            std::cout << world_rank << "SENDING TO (MODE 2)" << rank << std::endl;
-                            std::cout << "Sending size: " << local_length << " Inserting at: " << shift_start << std::endl; 
+                            //std::cout << world_rank << "SENDING TO (MODE 2)" << rank << std::endl;
+                            //std::cout << "Sending size: " << local_length << " Inserting at: " << shift_start << std::endl; 
                             
                             MPI_Send(input, local_length, MPI_INT, rank, shift_start, comm);
                         }
                         else if (shift_end >= offsets_start[rank + 1])
                         {
-                            std::cout << world_rank << "SENDING TO (MODE 3)" << rank << std::endl;
-                            std::cout << "Sending size: " << local_length << " Inserting at: " << shift_start << std::endl; 
+                            //std::cout << world_rank << "SENDING TO (MODE 3)" << rank << std::endl;
+                            //std::cout << "Sending size: " << local_length << " Inserting at: " << shift_start << std::endl; 
 
                             MPI_Send(input, offsets_end[rank] - shift_start + 1, MPI_INT, rank, shift_start, comm); //From calculated start to end of bucket -> Overlapping to next
                             MPI_Send(input + offsets_end[rank] - shift_start + 1
@@ -495,7 +532,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
                 }
                 if ((shift_start < 0) and (shift_end)>= 0)
                 {
-                        std::cout << world_rank << "SENDING TO (MODE 4)" << 0 << std::endl;
+                        //std::cout << world_rank << "SENDING TO (MODE 4)" << 0 << std::endl;
                         MPI_Send(input + local_length - (shift_end + 1), shift_end + 1, MPI_INT, 0, 0, comm);
                 }
                 
@@ -509,7 +546,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
                 if (local_length > h){//Local shifting from direct neghbour
                     //MPI_Recv(input + local_length - h, h, MPI_INT, world_rank + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);//Recieve start MPI_recv(input,number_amount, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status)//Recieve start 
                     
-                    std::cout << "Awaiting recieve " <<world_rank<< std::endl;
+                    //std::cout << "Awaiting recieve " <<world_rank<< std::endl;
                     MPI_Status status;
                     int position; 
                     int number_amount; 
@@ -519,11 +556,11 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
 
                     
                     MPI_Recv(input+position-offsets_start[world_rank],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start 
-                    std::cout << "Recieved " <<world_rank<< std::endl; 
+                    //std::cout << "Recieved " <<world_rank<< std::endl; 
                 }
                 else
                 {
-                    std::cout << "Awaiting recieve " <<world_rank<< std::endl;
+                    //std::cout << "Awaiting recieve " <<world_rank<< std::endl;
                     MPI_Status status;
                     int position; 
                     int number_amount; 
@@ -531,22 +568,22 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
                     position = status.MPI_TAG;
                     MPI_Get_count(&status, MPI_INT, &number_amount);
 
-                    std::cout << "position1" << position << std::endl;
+                    //std::cout << "position1" << position << std::endl;
                     
                     MPI_Recv(input+position-offsets_start[world_rank],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start 
-                    std::cout << "Recieved " <<world_rank<< std::endl; 
+                    //std::cout << "Recieved " <<world_rank<< std::endl; 
 
                     if (number_amount < local_length){//If not enough recieve more 
 
-                        std::cout << "Awaiting recieve more " <<world_rank<< std::endl;
+                        //std::cout << "Awaiting recieve more " <<world_rank<< std::endl;
                         MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
                         position = status.MPI_TAG;
                         MPI_Get_count(&status, MPI_INT, &number_amount);
                         
-                        std::cout << "position2" << position << std::endl;
+                        //std::cout << "position2" << position << std::endl;
                         
                         MPI_Recv(input+position-offsets_start[world_rank],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start
-                        std::cout << "Recieved more" <<world_rank<< std::endl; 
+                        //std::cout << "Recieved more" <<world_rank<< std::endl; 
                     }
                     /*
                     std::cout << "Recieving locally"<<world_rank<< std::endl;
@@ -566,24 +603,24 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
             }
             else if ((offsets_end[world_size -1] + 1 - offsets_start[world_rank] <= h))//Only zeroes are filled
             {
-                std::cout << "Zeroes are added to rank " << world_rank <<std::endl;  
+                //std::cout << "Zeroes are added to rank " << world_rank <<std::endl;  
                 std::fill(input + local_length - h, input + local_length, 0);
             }
             else { //Mixed case
-                std::cout << "Entering mixed case on rank " << world_rank <<std::endl;  
+                //std::cout << "Entering mixed case on rank " << world_rank <<std::endl;  
 
                 if (world_rank != world_size - 1){
                     MPI_Status status;
                     int position; 
                     int number_amount; 
-                    std::cout << "Awaiting recieve " <<world_rank<< std::endl;
+                    //std::cout << "Awaiting recieve " <<world_rank<< std::endl;
                     MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
                     position = status.MPI_TAG;
                     MPI_Get_count(&status, MPI_INT, &number_amount);
 
                     
                     MPI_Recv(input+position-offsets_start[world_rank],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start 
-                    std::cout << "Recieved " <<world_rank<< std::endl; 
+                    //std::cout << "Recieved " <<world_rank<< std::endl; 
 
                     //Fill the rest with zeroes 
                     std::fill(input + number_amount, input + local_length, 0);
@@ -629,265 +666,12 @@ bool all_singleton (tuple_ISA *input, MPI_Comm comm, const int world_rank,
     bool singleton = true;
 
     for (int i = 0; i < local_length - 1; i++){
-        if (input[i].SA == input[i + 1].SA)
+        if (input[i].B == input[i + 1].B)
             singleton = false;
     }
-    if (input[local_length - 1].SA == after_end[0].SA)
+    if (input[local_length - 1].B == after_end[0].B)
         singleton = false;
 
-    std::cout << singleton <<std::endl;
+    //std::cout << singleton <<std::endl;
     return singleton; 
 }
-
-
-
-/*
-void shift_h(int *input, const int h, MPI_Comm comm, const int world_rank,
-             const int world_size, int *offsets, int local_length)
-{
-
-    int local_end_len = offsets[world_rank];
-    int deleted_size = 0;
-
-    for (int i = 0; i < world_size; i++){
-        if (offsets[i] < h) //This offset will still be deleted
-            deleted_size = offsets[i] + 1;
-    }
-   if (h > local_end_len) // This section is entirely shifted away
-   { 
-        std::fill(input,
-            input + local_length, 0);
-   }
-    else {
-        int shift_by = h - deleted_size;
-
-        if ((world_rank != 0) and (offsets[world_rank - 1]>=h))
-        {
-            MPI_Send(input, shift_by, MPI_INT, world_rank - 1, 0, comm);
-        }
-
-        std::copy(input + shift_by, input + local_length, input);
-
-        if (world_rank != world_size - 1)
-        {
-            MPI_Recv(input + local_length - shift_by, shift_by,
-                     MPI_INT,
-                     world_rank + 1, 0,
-                     comm, MPI_STATUS_IGNORE);
-            //Write into input at end
-        }
-        else
-        {
-            std::fill(input + local_length - shift_by,
-                      input + local_length, 0);
-        }
-    }
-    print_int_array(input, local_length);
-}
-
-bool all_singleton (int *input, MPI_Comm comm, const int world_rank,
-             const int world_size, int local_length){
-
-    if (world_rank != 0)
-    {
-        MPI_Send(input, 1, MPI_INT, world_rank - 1, 0, comm);
-    }
-
-    int after_end[1] = {-1}; 
-    if (world_rank != world_size - 1)
-    {
-        MPI_Recv(after_end, 1, MPI_INT, world_rank + 1, 0, comm, MPI_STATUS_IGNORE);
-    }
-
-    bool singleton = true;
-
-    for (int i = 0; i < local_length - 1; i++){
-        if (input[i] == input[i + 1])
-            singleton = false;
-    }
-    if (input[local_length - 1] == after_end[0])
-        singleton = false;
-
-    std::cout << singleton <<std::endl;
-    return singleton; 
-}
-
-/*
-void sort_tuple_vector(tuple_vector &input)
-{
-    std::sort(input.begin(), input.end(), [&](auto a, auto b) {
-        return std::lexicographical_compare(std::get<0>(a).begin(), std::get<0>(a).end(),
-                                            std::get<0>(b).begin(), std::get<0>(b).end());
-    });
-}
-
-void print_vector(const std::vector<int> &input)
-{
-    for (std::vector<int>::const_iterator i = input.begin(); i != input.end(); ++i)
-    {
-        std::cout << *i << ",";
-    }
-    std::cout << std::endl;
-}
-
-void print_tuple_vector(const tuple_vector &input)
-{
-
-    for (tuple_vector::const_iterator i = input.begin(); i != input.end(); ++i)
-    {
-        std::cout << std::get<0>(*i) << "," << std::get<1>(*i) << "|";
-    }
-    std::cout << std::endl;
-}
-
-void print_triple_vector(const triple_vector &input)
-{
-
-    for (triple_vector::const_iterator i = input.begin(); i != input.end(); ++i)
-    {
-        std::cout << std::get<0>(*i) << "," << std::get<1>(*i) << "," << std::get<2>(*i) << "|";
-    }
-    std::cout << std::endl;
-}
-
-bool triple_tuple_comp(std::tuple<int, int, int> a,
-                       std::tuple<int, int, int> b)
-{
-    if (std::get<0>(a) < std::get<0>(b))
-        return true;
-    else if (std::get<0>(a) > std::get<0>(b))
-        return false;
-    else
-    {
-        if (std::get<1>(a) < std::get<1>(b))
-            return true;
-        else if (std::get<1>(a) > std::get<1>(b))
-            return false;
-        else
-        {
-            if (std::get<2>(a) < std::get<2>(b))
-                return true;
-            else // if(std::get<2>(a)>std::get<2>(b))
-                return false;
-        }
-    }
-}
-
-void sort_triple_vector(triple_vector &input)
-{
-    std::sort(input.begin(), input.end(), triple_tuple_comp);
-}
-
-void rebucketing(int *index,tuple_t *kmers, size_t size, int displ, int *local_SA){
-    index[0]=displ;
-    local_SA[0]=kmers[0].idx;
-    for(int i=1;i<size;i++){
-        if(!std::lexicographical_compare(kmers[i-1].seq, kmers[i-1].seq + K, kmers[i].seq, kmers[i].seq + K)){
-            index[i]=index[i-1];
-            //std::cout<<kmers[i].idx<<std::endl;
-            local_SA[i]=kmers[i].idx;
-        }
-        else{
-            index[i]=displ+i;
-            //std::cout<<kmers[i].idx<<std::endl;
-            local_SA[i]=kmers[i].idx;
-        }
-    }
-}
-
-tuple_vector rebucket(tuple_vector vec)
-{
-    std::string prev_string = std::get<0>(vec[0]);
-    //Maybe not keep track of prev_index, but access i-1.
-    int prev_index = 0;
-    int count = 0;
-    tuple_vector B(vec.size());
-
-    for (tuple_vector::const_iterator i = vec.begin(); i != vec.end(); i++)
-    {
-        if (std::get<0>(*i) == prev_string)
-        {
-            //Not use push_back, but allocate size
-            B[i - vec.begin()] = std::make_tuple(std::get<0>(*i), prev_index);
-        }
-        else
-        {
-            B[i - vec.begin()] = (std::make_tuple(std::get<0>(*i), count));
-            prev_string = std::get<0>(*i);
-            prev_index = count;
-        }
-        count++;
-    }
-    return B;
-}
-
-void rebucket_2h(triple_vector vec, std::vector<int> &SA, std::vector<int> &B)
-{
-    //problem:Need B to be tuple vector in order to return at the
-    //beginning of for loop, but we only saved the indices here in the
-    //triple vectors
-    int prev_index_B = 0;
-    int prev_index_B2 = 0;
-    int prev_index = 0;
-    int count = 0;
-    for (triple_vector::const_iterator i = vec.begin(); i != vec.end(); i++)
-    {
-        if (std::get<0>(*i) != prev_index_B or std::get<1>(*i) != prev_index_B2)
-        {
-            B[i - vec.begin()] = count;
-            prev_index_B = std::get<0>(*i);
-            prev_index_B2 = std::get<1>(*i);
-            prev_index = count;
-            SA[i - vec.begin()] = std::get<2>(*i);
-        }
-        else
-        {
-            B[i - vec.begin()] = prev_index;
-            SA[i - vec.begin()] = std::get<2>(*i);
-        }
-        count++;
-    }
-}
-bool check_singleton(std::vector<int> &input)
-{
-    for (std::vector<int>::const_iterator i = input.begin(); i != input.end() - 1; ++i)
-    {
-        if (*i == *(i + 1))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-tuple_vector get_kmers_not_mpi(const std::string &input, const int k)
- {
-     tuple_vector kmers;
-
-     for (std::string::const_iterator i = input.begin(); i != input.end(); i++)
-     {
-         kmers.push_back(
-             std::make_tuple(
-                 std::string(i, i + k),
-                 int((i - input.begin()))));
-     }
-     return kmers;
- }
-
-
-*/
-
-/*
-int main (){
-    std::string test = "bananaahahahhahahh";
-    print_tuple_vector(get_kmers(test, 2));
-}
-
-std::tuple<std::string, int> data[] = {std::make_tuple("ba",0),std::make_tuple("an",1),std::make_tuple("na",1)};
-tuple_vector test (data, data + sizeof(data) / sizeof(int) );
-
-TEST_CASE( "Kmers are computed!", "[kmer]" ) {
-    REQUIRE( get_kmers("bana", 2) == test );
-}
-
-*/
