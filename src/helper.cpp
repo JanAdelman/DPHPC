@@ -239,6 +239,8 @@ bool triple_t_compare(const triple_t &a, const triple_t &b)
     }
 }
 
+
+
 void t_sort(tuple_t *input, size_t size)
 {
     std::sort(input, input + size, tuple_t_compare);

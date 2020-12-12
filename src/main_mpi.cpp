@@ -43,6 +43,7 @@ int main(int argc, char **argv)
     //char input[] = "ABCDEFGHAHAHABCDEFGHAHAHABCDEFGHAHAH$";
     //char input[] = "AAAASBBBL"; //overlapping string of k=2 and p=4
     //char input[]="NJSDJSNMCXNCJDKHFUIAAAJ";
+    //char input[]="RAYASTOYANOVA";
     char input[]="MISSISSIPPI$";
     //AAA AAA AAH AHH HHH HHK HKK KKK KKK
     //0 1 2 3 4 5 6 7 8
@@ -103,38 +104,11 @@ int main(int argc, char **argv)
         //tuple_t_print(kmers, size);
         global_result_kmers = typename_t_sort(log2(world_size), world_rank, kmers, size, MPI_COMM_WORLD);
         //t_print(global_result_kmers, string_length - K + 1);
-
-        /*
-        int reciever = 1;
-        //std::cout<<"thing"<<strlen(input) - step_size<<std::endl;
-        for (int i = 0; i < string_length; i += step_size)
-        {
-            std::cout<<i + step_size<<std::endl;
-            if (i + step_size >string_length-1) //maybe add -1 oder >=
-            {                                   // Send rest
-            std::cout<<"if statement"<<std::endl;
-                int size = string_length - i - K + 1;
-                tuple_t kmers[size];
-                get_kmers(&input[i], K, kmers, size);
-                tuple_t_sort(kmers, size);
-                std::cout<<"kmers sorted"<<std::endl;
-                global_result_kmers = typename_t_sort<tuple_t>(log2(world_size), world_rank, kmers, size, MPI_COMM_WORLD);
-                std::cout<<"sort this shit"<<std::endl;
-                tuple_t_print(global_result_kmers, string_length-K+1);
-            }
-            else
-            {
-                MPI_Send(&input[i], step_size + K - 1, MPI_CHAR, reciever, 0, MPI_COMM_WORLD);
-            }
-            reciever++;
-        }
-        */
     }
     else
     {
         int size = sendnums[world_rank]+K-1;
-        //std::cout<<world_rank<<std::endl;
-        //std::cout<<"size "<<size<<std::endl;
+ 
         char sub_input[size];
 
         //int recieved_size;
@@ -144,13 +118,12 @@ int main(int argc, char **argv)
 
         tuple_t kmers[size - K + 1];
         get_kmers_adapt(sub_input, K, kmers, size - K + 1,displace[world_rank]);
-        //std::cout<<world_rank<<std::endl;
-        //tuple_t_print(kmers, size - K + 1);
+   
 
         // sort the tuples lexicographically
         t_sort(kmers, size - K + 1);
-        //std::cout<<world_rank<<std::endl;
-        //tuple_t_print(kmers, size - K + 1);
+        //MPI_Barrier(MPI_COMM_WORLD);//should we insert this barrier or not?
+    
 
         //Global sort
         typename_t_sort(log2(world_size), world_rank, kmers, size - K + 1, MPI_COMM_WORLD);
@@ -227,8 +200,6 @@ int main(int argc, char **argv)
     if(world_rank==0){
         std::cout<<"h"<<h<<std::endl;
     }
-
-
     
     tuple_ISA sendbufISA[sendcounts[world_rank]];
     int displace_ISA[world_size];
@@ -256,6 +227,8 @@ int main(int argc, char **argv)
     tuple_ISA* recvbuf_ISA= probing_alltoallv(sendbufISA, displace_ISA, sendcounts[world_rank], world_size, counts_bucket, MPI_COMM_WORLD, world_rank, MPI_TUPLE_ISA);
     
     
+    std::cout<<"h:"<<h<<"world rank"<<world_rank<<" "<<"did all to all"<<std::endl;
+    
     
     MPI_Barrier(MPI_COMM_WORLD);
     
@@ -265,7 +238,7 @@ int main(int argc, char **argv)
     reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank],displs[world_rank]);
 
     
-
+    std::cout<<"h:"<<h<<"world rank"<<world_rank<<" "<<"reordered to string order"<<std::endl;
     int offsets[world_size];
     for(int i=0;i<world_size;i++){
         offsets[i]=displs[i]+sendcounts[i]-1;
@@ -277,6 +250,8 @@ int main(int argc, char **argv)
     //SHIFTING 
     naive_shift(B2, h, MPI_COMM_WORLD, world_rank, world_size, displs, sendcounts[world_rank], offsets);
 
+    std::cout<<"h:"<<h<<"world rank"<<world_rank<<" "<<"shifted"<<std::endl;
+
     
     //TRIPLES 
 
@@ -286,6 +261,10 @@ int main(int argc, char **argv)
     
     //SORT LOCALLY
     t_sort(triple_arr, sendcounts[world_rank]);
+
+    std::cout<<"h:"<<h<<"world rank"<<world_rank<<" "<<"sorted locally"<<std::endl;
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     //SORT GLOBALLY
     triple_t* global_result_triplet;
@@ -298,6 +277,7 @@ int main(int argc, char **argv)
     {
         typename_t_sort(log2(world_size), world_rank, triple_arr, sendcounts[world_rank], MPI_COMM_WORLD);
     }
+    MPI_Barrier(MPI_COMM_WORLD);
 
     MPI_Datatype MPI_TRIPLE_STRUCT;
     int lengths_triple[3] = {1, 1, 1};
@@ -308,6 +288,7 @@ int main(int argc, char **argv)
     MPI_Type_commit(&MPI_TRIPLE_STRUCT);
 
 
+    std::cout<<"h:"<<h<<"world rank"<<world_rank<<" "<<"global sorting done"<<std::endl;
 
     
     //SCATTER
@@ -329,6 +310,8 @@ int main(int argc, char **argv)
     rebucketing(SA_B,recvbuf_triplets, sendcounts[world_rank], displs,world_rank,world_size,counts_bucket);
 
     MPI_Barrier(MPI_COMM_WORLD);
+
+    std::cout<<"h:"<<h<<"world rank"<<world_rank<<" "<<"rebucketing function called"<<std::endl;
 
     if (world_rank < world_size - 1)
     {
@@ -356,10 +339,10 @@ int main(int argc, char **argv)
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-   if(h==4){
-      std::cout<<"world_rank"<<world_rank<<"SAB CREATED in for loop"<<std::endl;
-    tuple_print(SA_B,sendcounts[world_rank]); 
-   }
+    std::cout<<"h:"<<h<<"world rank"<<world_rank<<" "<<"rebucketing done"<<std::endl;
+
+
+
    
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -376,16 +359,26 @@ int main(int argc, char **argv)
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    if(singleton_global && world_rank==0){
-        std::cout << singleton_global << std::endl;
-        std::cout << "final";
-        break;
+    
+
+    MPI_Bcast(&singleton_global,1,MPI_C_BOOL,0,MPI_COMM_WORLD);
+
+    if(singleton_global){
+        tuple_ISA final_SA[string_length-K+1];
+        MPI_Gatherv(SA_B,sendcounts[world_rank],MPI_TUPLE_ISA,final_SA,sendcounts,displs,MPI_TUPLE_ISA,0,MPI_COMM_WORLD);
+        if(world_rank==0){
+            int finalarr[]={11,10,7,4,1,0,9,8,6,3,5,2};
+            tuple_print(final_SA,string_length-K+1);
+        }
+        MPI_Finalize();
+        return 0;
+
+        //exit(1);
     }
 
     }
     //MPI_Barrier(MPI_COMM_WORLD);
     // Finalize the MPI environment.
-    MPI_Finalize();
-    
+    //MPI_Finalize();
     return 0;
 }
