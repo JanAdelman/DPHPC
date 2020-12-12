@@ -215,10 +215,21 @@ int main(int argc, char **argv)
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
+
+    //########################################################
+    //########################################################
+    //########################################################
+    //########################################################
+
+
     for(int h=K;h<=string_length-K+1;h*=2)
     {
+    if(world_rank==0){
+        std::cout<<"h"<<h<<std::endl;
+    }
+
+
     
-    std::cout << "Datastructure setup..."<<std::endl;
     tuple_ISA sendbufISA[sendcounts[world_rank]];
     int displace_ISA[world_size];
     int current_index_ISA=0;
@@ -235,23 +246,25 @@ int main(int argc, char **argv)
         //int id= bucket_id(displs, SA_B[j], world_size);
         int id= bucket_id(displs, SA_B[j], world_size);
         sendbufISA[displace_ISA[id]+counts_filled[id]]=SA_B[j];
-        counts_filled[id]++;      
+        counts_filled[id]++;    
     }
 
-    
-    
+  
+
 
     //this array must be updated after every for loop
     tuple_ISA* recvbuf_ISA= probing_alltoallv(sendbufISA, displace_ISA, sendcounts[world_rank], world_size, counts_bucket, MPI_COMM_WORLD, world_rank, MPI_TUPLE_ISA);
     
-    std::cout << "world rank after sendbuf made"<<world_rank << std::endl;
-    MPI_Barrier(MPI_COMM_WORLD);
-    std::cout << "...Datastructure complete"<<std::endl;   
     
-    //for(int h=K; h<string_length;h=h*2){
-    //std::cout<<"world rank"<<world_rank<<std::endl;
+    
+    MPI_Barrier(MPI_COMM_WORLD);
+    
+    
+    
     int B[sendcounts[world_rank]];
     reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank],displs[world_rank]);
+
+    
 
     int offsets[world_size];
     for(int i=0;i<world_size;i++){
@@ -304,15 +317,15 @@ int main(int argc, char **argv)
 
     //REBUCKET
 
-    //t_print(recvbuf_triplets, sendcounts[world_rank]);
+    
 
-    int counts_bucket[world_size];//counts of tuples to send out to each processor
+    //int counts_bucket[world_size];//counts of tuples to send out to each processor
     //according to their index for later ISA creation
     for(int i=0;i<world_size;i++){
         counts_bucket[i]=0;
     }
 
-    tuple_ISA SA_B[sendcounts[world_rank]];
+    //tuple_ISA SA_B[sendcounts[world_rank]];
     rebucketing(SA_B,recvbuf_triplets, sendcounts[world_rank], displs,world_rank,world_size,counts_bucket);
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -342,20 +355,37 @@ int main(int argc, char **argv)
         }
     }
     MPI_Barrier(MPI_COMM_WORLD);
+
+   if(h==4){
+      std::cout<<"world_rank"<<world_rank<<"SAB CREATED in for loop"<<std::endl;
+    tuple_print(SA_B,sendcounts[world_rank]); 
+   }
    
-   // tuple_print(rebucket_triplets,sendcounts[world_rank]);
+    MPI_Barrier(MPI_COMM_WORLD);
 
     bool singleton = all_singleton(SA_B,MPI_COMM_WORLD, world_rank, world_size, sendcounts[world_rank]);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    std::cout<<"World_rank"<<world_rank<<" h "<<h<<" singleton "<<singleton<<std::endl;
 
     bool singleton_global;
     MPI_Reduce(&singleton, &singleton_global, 1, MPI_C_BOOL, MPI_LAND, MASTER, MPI_COMM_WORLD);
-    
-    std::cout<<h<<" "<<singleton_global<<std::endl;
 
-    if(singleton_global)
+    if(world_rank==0){  
+    std::cout<<"End of one iteration, h:"<<h<<" "<<singleton_global<<std::endl;
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    if(singleton_global && world_rank==0){
+        std::cout << singleton_global << std::endl;
+        std::cout << "final";
         break;
+    }
 
     }
+    //MPI_Barrier(MPI_COMM_WORLD);
     // Finalize the MPI environment.
     MPI_Finalize();
+    
+    return 0;
 }

@@ -102,7 +102,7 @@ void rebucketing(tuple_ISA *SA_B,triple_t *input, size_t size, int* displ, int w
     SA_B[0].B=displ[world_rank];
     SA_B[0].SA=input[0].idx;
     int id_zero=bucket_id(displ,SA_B[0],world_size);
-    //counts[id_zero]+=1;
+    counts[id_zero]+=1;
     for(int i=1;i<size;i++){
         if((input[i-1].b == input[i].b and input[i-1].b2 == input[i].b2)){
             SA_B[i].B=SA_B[i-1].B;
