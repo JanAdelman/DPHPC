@@ -5,6 +5,8 @@
 #include <vector>
 #include <tuple>
 #include <type_traits>
+#include <ostream>
+#include <fstream>
 
 /*
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
@@ -14,7 +16,7 @@
 typedef std::vector<std::tuple<std::string, int>> tuple_vector;
 typedef std::vector<std::tuple<int, int, int>> triple_vector;
 
-#define K 1
+#define K 32
 
 struct tuple_t
 {
@@ -122,10 +124,14 @@ void rebucketing(tuple_ISA *SA_B,triple_t *input, size_t size, int* displ, int w
 
 tuple_ISA* probing_alltoallv(tuple_ISA* sendbuf, int* sdispls, int size, int world_size, int* sendcounts, MPI_Comm comm, int world_rank,MPI_Datatype TYPE){
 
+    
     //Send to every neighbour
     for (int i = 0; i < world_size; i++){
         if(i!=world_rank){
-           MPI_Send(&sendbuf[sdispls[i]],sendcounts[i], TYPE, i, 0, comm); 
+            //std::cout << "Sending out" << world_rank <<" " << sendcounts[i]<<std::endl;
+            MPI_Request request;
+            MPI_Isend(&sendbuf[sdispls[i]],sendcounts[i], TYPE, i, 0, comm, &request); 
+            //std::cout << world_rank << " sent in probing"<<std::endl;
         }
     }
 
@@ -140,6 +146,7 @@ tuple_ISA* probing_alltoallv(tuple_ISA* sendbuf, int* sdispls, int size, int wor
         if(i!=world_rank){ 
             MPI_Status status;
             MPI_Recv(recv_buffer + used_size, size, TYPE, i, 0, comm, &status);
+            //MPI_Sendrecv(&sendbuf[sdispls[i]], sendcounts[i], TYPE, i, 0, );
             MPI_Get_count(&status, TYPE, &recieved_size);
             //Increase used by recieved size to prepare next offset
         }
@@ -304,6 +311,20 @@ void tuple_print(const tuple_ISA *input, size_t size)
         std::cout << " SA: " << (input + i)->SA << std::endl;
     }
     std::cout << "---" << std::endl;
+}
+
+void debug_tuple_print(const tuple_ISA *input, size_t size)
+{
+    
+    std::ofstream outfile ("./result.txt");
+    
+    for (int i = 0; i < size; i++)
+    {
+        //std::cout << ((input + i)->SA) << ",";
+        outfile << input[i].SA << ",";
+    }
+
+    outfile.close();
 }
 
 void reorder_to_stringorder(int* B,tuple_ISA *input,size_t size_inp, int displacement){
