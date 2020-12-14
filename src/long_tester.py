@@ -4,7 +4,7 @@ import string
 from termcolor import colored
 import subprocess
 
-WORD_LEN = 10**3
+WORD_LEN = 10**8
  
 #alphabet = string.ascii_uppercase
 alphabet = ["A","C","T","G"]
@@ -19,6 +19,9 @@ for i in range(len(input_string)-k+1):
 print("Python Sorting")
 expected_output = list({k: v for k, v in sorted(kmers.items(), key=lambda item: item[1])}.keys())
 expected_output = ','.join(map(str, expected_output)) + ','
+
+with open("expected.txt", "w") as file:
+    file.write(expected_output)
 
 print("Python Sorted")
 
@@ -40,7 +43,7 @@ else:
     color = "red"
 
 print("-" * 20)
-print("MPI: " + output[:20])
-print("EXP: " + expected_output[:20])
+print("MPI: " + output[:20] + " : " + str(len(output)))
+print("EXP: " + expected_output[:20] +  " : "  + str(len(expected_output)))
 print(colored(output == expected_output, color))
 

@@ -8,14 +8,6 @@
 #include <ostream>
 #include <fstream>
 
-/*
-#define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
-#include "catch_amalgamated.hpp"
-*/
-
-typedef std::vector<std::tuple<std::string, int>> tuple_vector;
-typedef std::vector<std::tuple<int, int, int>> triple_vector;
-
 #define K 32
 
 struct tuple_t
@@ -35,25 +27,6 @@ struct tuple_ISA{
     int SA;
     int B;
 };
-
-/*
-void rebucketing(int *index,tuple_t *kmers, size_t size, int displ, int *local_SA){
-    index[0]=displ;
-    local_SA[0]=kmers[0].idx;
-    for(int i=1;i<size;i++){
-        if(!std::lexicographical_compare(kmers[i-1].seq, kmers[i-1].seq + K, kmers[i].seq, kmers[i].seq + K)){
-            index[i]=index[i-1];
-            //std::cout<<kmers[i].idx<<std::endl;
-            local_SA[i]=kmers[i].idx;
-        }
-        else{
-            index[i]=displ+i;
-            //std::cout<<kmers[i].idx<<std::endl;
-            local_SA[i]=kmers[i].idx;
-        }
-    }
-}
-*/
 
 int bucket_id(int* displ, tuple_ISA &SA_B, int world_size){
     for(int i=0;i<world_size-1;i++){
@@ -241,7 +214,7 @@ void t_sort(std::vector<tuple_t> &input, size_t size)
 {
     std::sort(input.begin(), input.end(), tuple_t_compare);
 }
-void t_sort(std::vector<triple_t> input, size_t size)
+void t_sort(std::vector<triple_t> &input, size_t size)
 {
     std::sort(input.begin(), input.end(), triple_t_compare);
 }
@@ -276,12 +249,12 @@ void t_print_flat(const triple_t *input, size_t size, int rank, int target)
 }
 
 
-void tuple_print(const tuple_ISA *input, size_t size)
+void t_print(std::vector<tuple_ISA> input, size_t size)
 {
     for (int i = 0; i < size; i++)
     {
-        std::cout << " B: " << (input + i)->B << std::endl;
-        std::cout << " SA: " << (input + i)->SA << std::endl;
+        std::cout << " B: " << (input.begin() + i)->B << std::endl;
+        std::cout << " SA: " << (input.begin() + i)->SA << std::endl;
     }
     std::cout << "---" << std::endl;
 }
@@ -376,8 +349,8 @@ std::vector<tuple_t> typename_t_sort(int height, int id, std::vector<tuple_t> &l
             std::cout << "Sent " << id << std::endl;
         }
     }
-    //return NULL;
-     
+    std::vector<tuple_t> empty (0);
+    return empty; 
 }
 
 void create_triple(std::vector<int> &B, std::vector<int> &B2, int size,int displ, std::vector<triple_t> &triple_arr){
@@ -458,6 +431,8 @@ std::vector<triple_t> typename_t_sort(int height, int id, std::vector<triple_t> 
             local_height = height;
         }
     }
+    std::vector<triple_t> empty (0);
+    return empty; 
 }
 
 

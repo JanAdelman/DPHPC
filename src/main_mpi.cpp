@@ -81,6 +81,7 @@ int main(int argc, char **argv)
     }
     sendnums[0] = nmin;
     displace[0] = k;
+
     std::vector<tuple_t> global_result_kmers;
 
 
@@ -111,8 +112,9 @@ int main(int argc, char **argv)
 
         std::cout << "Begin global sort!" << std::endl;
 
+        global_result_kmers.resize(string_length - K + 1);
         global_result_kmers = typename_t_sort(log2(world_size), world_rank, kmers, size, MPI_COMM_WORLD);
-        //t_print(global_result_kmers, string_length - K + 1);
+        
     }
     else
     {
@@ -145,6 +147,9 @@ int main(int argc, char **argv)
     }
     
     MPI_Barrier(MPI_COMM_WORLD);
+
+    //if (world_rank == 0)
+     //   std::cout << (*global_result_kmers).size()<<std::endl;
 
     std::cout << "Sorting done!" << std::endl;
 
@@ -183,8 +188,10 @@ int main(int argc, char **argv)
     
     rebucketing(SA_B, recvbuf, sendcounts[world_rank], displs,counts_bucket,world_rank, world_size);
     
+
     
     MPI_Barrier(MPI_COMM_WORLD);
+
 
     if (world_rank < world_size - 1)
     {
@@ -211,9 +218,11 @@ int main(int argc, char **argv)
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-
+    
     std::cout << "Rebucketing done!" << std::endl;
 
+
+    //t_print(SA_B, sendcounts[world_rank]); Correct
 
     //########################################################
     //########################################################
