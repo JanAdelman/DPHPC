@@ -78,7 +78,7 @@ int bucket_id_shift(int* displ, int B, int world_size, int* sendcounts){
     return world_size-1;
 }
 
-void rebucketing(tuple_ISA *SA_B,tuple_t *kmers, size_t size, int* displ, int* counts, int world_rank, int world_size){
+void rebucketing(std::vector<tuple_ISA> &SA_B, std::vector<tuple_t> &kmers, size_t size, int* displ, int* counts, int world_rank, int world_size){
     SA_B[0].B=displ[world_rank];
     SA_B[0].SA=kmers[0].idx;
     int id_zero=bucket_id(displ,SA_B[0],world_size);
@@ -100,7 +100,7 @@ void rebucketing(tuple_ISA *SA_B,tuple_t *kmers, size_t size, int* displ, int* c
 }
 
 //TRIPLET
-void rebucketing(tuple_ISA *SA_B,triple_t *input, size_t size, int* displ, int world_rank, int world_size,int* counts){
+void rebucketing(std::vector<tuple_ISA> &SA_B,std::vector<triple_t> &input, size_t size, int* displ, int world_rank, int world_size,int* counts){
     SA_B[0].B=displ[world_rank];
     SA_B[0].SA=input[0].idx;
     int id_zero=bucket_id(displ,SA_B[0],world_size);
@@ -122,7 +122,7 @@ void rebucketing(tuple_ISA *SA_B,triple_t *input, size_t size, int* displ, int w
 }
 
 
-tuple_ISA* probing_alltoallv(tuple_ISA* sendbuf, int* sdispls, int size, int world_size, int* sendcounts, MPI_Comm comm, int world_rank,MPI_Datatype TYPE){
+std::vector<tuple_ISA> probing_alltoallv(std::vector<tuple_ISA> &sendbuf, int* sdispls, int size, int world_size, int* sendcounts, MPI_Comm comm, int world_rank,MPI_Datatype TYPE){
 
     
     //Send to every neighbour
@@ -137,7 +137,7 @@ tuple_ISA* probing_alltoallv(tuple_ISA* sendbuf, int* sdispls, int size, int wor
 
 
     //Allocate array of global size on this processor
-    tuple_ISA* recv_buffer = (tuple_ISA*) malloc(size * sizeof(tuple_ISA));
+    std::vector<tuple_ISA> recv_buffer(size);
     //Size of recieve buffer used so far 
     int used_size = 0; 
     int recieved_size;
@@ -145,13 +145,13 @@ tuple_ISA* probing_alltoallv(tuple_ISA* sendbuf, int* sdispls, int size, int wor
     for (int i = 0; i < world_size; i++){   
         if(i!=world_rank){ 
             MPI_Status status;
-            MPI_Recv(recv_buffer + used_size, size, TYPE, i, 0, comm, &status);
+            MPI_Recv(&recv_buffer[used_size], size, TYPE, i, 0, comm, &status);
             //MPI_Sendrecv(&sendbuf[sdispls[i]], sendcounts[i], TYPE, i, 0, );
             MPI_Get_count(&status, TYPE, &recieved_size);
             //Increase used by recieved size to prepare next offset
         }
         else{
-            std::copy(sendbuf+sdispls[world_rank],sendbuf+sdispls[world_rank]+sendcounts[world_rank],recv_buffer+used_size);
+            std::copy(&sendbuf[sdispls[world_rank]],&sendbuf[sdispls[world_rank]+sendcounts[world_rank]],&recv_buffer[used_size]);
             recieved_size=sendcounts[world_rank];
         }
         //Increase used by recieved size to prepare next offset
@@ -164,37 +164,26 @@ tuple_ISA* probing_alltoallv(tuple_ISA* sendbuf, int* sdispls, int size, int wor
 
 
 
-void print_char_array(const char *input, size_t size)
+void print_char_array(char *input, size_t size)
 {
     for (int i = 0; i < size; ++i)
         std::cout <<"   "<< input[i];
     std::cout << std::endl;
 }
 
-void print_int_array(const int *input, size_t size)
+void print_int_array(std::vector<int> &input, size_t size)
 {
     for (int i = 0; i < size; ++i)
         std::cout << input[i]<<",";
     std::cout << std::endl;
 }
 
-void get_kmers(const char *input, const int k, tuple_t *kmers, size_t size)
+void get_kmers_adapt(const char *input, const int k, std::vector<tuple_t> &kmers, size_t size, int displacement)
 {
     for (int i = 0; i < size; i++)
     {
         memcpy(kmers[i].seq, input + i, k);
-        kmers[i].seq[strlen(kmers[i].seq)] = '\0'; /* Add terminator */
-        kmers[i].idx = i;
-    }
-}
-
-void get_kmers_adapt(const char *input, const int k, tuple_t *kmers, size_t size, int displacement)
-{
-    for (int i = 0; i < size; i++)
-    {
-        memcpy(kmers[i].seq, input + i, k);
-        kmers[i].seq[strlen(kmers[i].seq)] = '\0'; /* Add terminator */
-        kmers[i].idx =displacement+ i;
+        kmers[i].idx = displacement+ i;
     }
 }
 
@@ -248,24 +237,24 @@ bool triple_t_compare(const triple_t &a, const triple_t &b)
 
 
 
-void t_sort(tuple_t *input, size_t size)
+void t_sort(std::vector<tuple_t> &input, size_t size)
 {
-    std::sort(input, input + size, tuple_t_compare);
+    std::sort(input.begin(), input.end(), tuple_t_compare);
 }
-void t_sort(triple_t *input, size_t size)
+void t_sort(std::vector<triple_t> input, size_t size)
 {
-    std::sort(input, input + size, triple_t_compare);
+    std::sort(input.begin(), input.end(), triple_t_compare);
 }
 
-void t_print(const tuple_t *input, size_t size)
+void t_print(std::vector<tuple_t> &input, size_t size)
 {
     for (int i = 0; i < size; i++){
-        print_char_array((input + i)->seq, K);
+        print_char_array(input[i].seq, K);
         std::cout<<"     "<<input[i].idx<<std::endl;
     }
     std::cout << "---" << std::endl;
 }
-void t_print(const triple_t *input, size_t size)
+void t_print(std::vector<triple_t> &input, size_t size)
 {
     for (int i = 0; i < size; i++)
     {
@@ -286,22 +275,6 @@ void t_print_flat(const triple_t *input, size_t size, int rank, int target)
     std::cout << std::endl;
 }
 
-/*
-
-void tuple_print(const tuple_ISA *input, size_t size)
-{
-    for (int i = 0; i < size; i++)
-    {
-        std::cout << "    B: " << (input + i)->B << std::endl;
-        std::cout << "    SA: " << (input + i)->SA << std::endl;
-        std::cout << "B: " << (input + i)->b << std::endl;
-        std::cout << "B2: " << (input + i)->b2 << std::endl;
-        std::cout << "SA: " << (input + i)->idx << std::endl;
-    }
-    std::cout << "---" << std::endl;
-}
-
-*/
 
 void tuple_print(const tuple_ISA *input, size_t size)
 {
@@ -313,7 +286,7 @@ void tuple_print(const tuple_ISA *input, size_t size)
     std::cout << "---" << std::endl;
 }
 
-void debug_tuple_print(const tuple_ISA *input, size_t size)
+void debug_tuple_print(std::vector<tuple_ISA> &input, size_t size)
 {
     
     std::ofstream outfile ("./result.txt");
@@ -327,7 +300,7 @@ void debug_tuple_print(const tuple_ISA *input, size_t size)
     outfile.close();
 }
 
-void reorder_to_stringorder(int* B,tuple_ISA *input,size_t size_inp, int displacement){
+void reorder_to_stringorder(std::vector<int> &B,std::vector<tuple_ISA> &input,size_t size_inp, int displacement){
     for(int i=0;i<size_inp;i++){
         B[(input[i].SA)-displacement] = input[i].B;
     }
@@ -336,8 +309,9 @@ void reorder_to_stringorder(int* B,tuple_ISA *input,size_t size_inp, int displac
 
 
 // Adapted from http://selkie-macalester.org/csinparallel/modules/MPIProgramming/build/html/mergeSort/mergeSort.html
-tuple_t *typename_t_sort(int height, int id, tuple_t localArray[], int size, MPI_Comm comm)
+std::vector<tuple_t> typename_t_sort(int height, int id, std::vector<tuple_t> &localArray, int size, MPI_Comm comm)
 {
+        
     MPI_Datatype MPI_TUPLE_STRUCT;
     int lengths[2] = {1, K};
     const MPI_Aint displacements[2] = {0, sizeof(int)};
@@ -346,7 +320,7 @@ tuple_t *typename_t_sort(int height, int id, tuple_t localArray[], int size, MPI
     MPI_Type_commit(&MPI_TUPLE_STRUCT);
 
     int parent, rightChild, local_height;
-    tuple_t *half1, *half2, *mergeResult;
+    std::vector<tuple_t> half1, half2, mergeResult;
 
     local_height = 0;
 
@@ -354,31 +328,34 @@ tuple_t *typename_t_sort(int height, int id, tuple_t localArray[], int size, MPI
 
     while (local_height < height)
     { // not yet at top
+        std::cout << "Getting Chil " << id << std::endl;
         parent = (id & (~(1 << local_height)));
+        std::cout << "Got child " << id << std::endl;
+        
 
         if (parent == id)
         { // left child
+        
+            
             rightChild = (id | (1 << local_height));
 
             int recieved_size;
             MPI_Status status;
+
             MPI_Probe(rightChild, 0, MPI_COMM_WORLD, &status);
 
             MPI_Get_count(&status, MPI_TUPLE_STRUCT, &recieved_size);
             // allocate memory and receive array of right child
-            half2 = (tuple_t *)malloc(recieved_size * sizeof(tuple_t));
-            MPI_Recv(half2, recieved_size, MPI_TUPLE_STRUCT, rightChild, 0, MPI_COMM_WORLD, &status);
+            half2.resize(recieved_size);
+            MPI_Recv(&half2[0], recieved_size, MPI_TUPLE_STRUCT, rightChild, 0, MPI_COMM_WORLD, &status);
 
-            mergeResult = (tuple_t *)malloc((size + recieved_size) * sizeof(tuple_t));
+           // mergeResult = (tuple_t *)malloc((size + recieved_size) * sizeof(tuple_t));
             // merge half1 and half2 into mergeResult
 
-            std::merge(half1, half1 + size, half2, half2 + recieved_size, mergeResult, tuple_t_compare);
-
+            mergeResult.resize(size+recieved_size);
+            std::merge(half1.begin(), half1.end(), half2.begin(), half2.end(), mergeResult.begin(), tuple_t_compare);
             // reassign half1 to merge result
             half1 = mergeResult;
-
-            free(half2);
-            mergeResult = NULL;
 
             if (local_height == 1 && id == 0)
             {
@@ -387,21 +364,23 @@ tuple_t *typename_t_sort(int height, int id, tuple_t localArray[], int size, MPI
 
             size = size + recieved_size;
             local_height++;
+            
         }
         else
         { // right child
             // send local array to parent
-            MPI_Send(half1, size, MPI_TUPLE_STRUCT, parent, 0, MPI_COMM_WORLD);
-
-            if (local_height != 0)
-                free(half1);
+            
+            std::cout << "Sedning " << id << std::endl;
+            MPI_Send(&half1[0], size, MPI_TUPLE_STRUCT, parent, 0, MPI_COMM_WORLD);
             local_height = height;
+            std::cout << "Sent " << id << std::endl;
         }
     }
-    return NULL;
+    //return NULL;
+     
 }
 
-void create_triple(int* B, int* B2, int size,int displ, triple_t* triple_arr){
+void create_triple(std::vector<int> &B, std::vector<int> &B2, int size,int displ, std::vector<triple_t> &triple_arr){
     //triple_t triple_arr[size];
     for(int i=0;i<size;i++){
         triple_arr[i].b=B[i];
@@ -414,7 +393,7 @@ void create_triple(int* B, int* B2, int size,int displ, triple_t* triple_arr){
     //return triple_arr;
     
 }
-triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, MPI_Comm comm)
+std::vector<triple_t> typename_t_sort(int height, int id, std::vector<triple_t> &localArray, int size, MPI_Comm comm)
 {
     MPI_Datatype MPI_TRIPLE_STRUCT;
     int lengths_triple[3] = {1, 1, 1};
@@ -425,7 +404,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
     MPI_Type_commit(&MPI_TRIPLE_STRUCT);
 
     int parent, rightChild, local_height;
-    triple_t *half1, *half2, *mergeResult;
+    std::vector<triple_t> half1, half2, mergeResult;
 
     local_height = 0;
 
@@ -445,22 +424,22 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
 
             MPI_Get_count(&status, MPI_TRIPLE_STRUCT, &recieved_size);
             // allocate memory and receive array of right child
-            half2 = (triple_t *)malloc(recieved_size * sizeof(triple_t));
-            MPI_Recv(half2, recieved_size, MPI_TRIPLE_STRUCT, rightChild, 0, comm, &status);
+            //half2 = (triple_t *)malloc(recieved_size * sizeof(triple_t));
+            half2.resize(recieved_size);
+
+            MPI_Recv(&half2[0], recieved_size, MPI_TRIPLE_STRUCT, rightChild, 0, comm, &status);
             //std::cout<<id<<rightChild<<std::endl;
            
             //t_print_flat(half2, recieved_size , rightChild, id);
 
-            mergeResult = (triple_t *)malloc((size + recieved_size) * sizeof(triple_t));
+            //mergeResult = (triple_t *)malloc((size + recieved_size) * sizeof(triple_t));
+            mergeResult.resize(size+recieved_size);
             // merge half1 and half2 into mergeResult
 
-            std::merge(half1, half1 + size, half2, half2 + recieved_size, mergeResult, triple_t_compare);
+            std::merge(half1.begin(), half1.begin() + size, half2.begin(), half2.begin() + recieved_size, mergeResult.begin(), triple_t_compare);
 
             // reassign half1 to merge result
             half1 = mergeResult;
-
-            free(half2);
-            mergeResult = NULL;
 
             if (local_height == 1 && id == 0)
             {
@@ -474,26 +453,22 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
         { // right child
             // send local array to parent
             
-            MPI_Send(half1, size, MPI_TRIPLE_STRUCT, parent, 0, comm);
+            MPI_Send(&half1[0], size, MPI_TRIPLE_STRUCT, parent, 0, comm);
 
-            if (local_height != 0)
-                free(half1);
             local_height = height;
         }
     }
-
-    return NULL;
 }
 
 
-    void naive_shift(int *input, const int h, MPI_Comm comm, const int world_rank, const int world_size, int *offsets_start, int local_length, int *offsets_end){
+    void naive_shift(std::vector<int> &input, const int h, MPI_Comm comm, const int world_rank, const int world_size, int *offsets_start, int local_length, int *offsets_end){
              //print_int_array(input, local_length);
             
             if (world_rank == 0)
             {
                 //std::cout <<h<<" "<<local_length << std::endl;
                 if (h < local_length){
-                    std::copy(input + h, input + local_length, input);
+                    std::copy(&input[h], &input[local_length], &input[0]);
                     //std::cout <<"Copying on " << world_rank << " "<< input[0] <<std::endl;
                 }
                 //print_int_array(input, local_length);
@@ -522,9 +497,9 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
                             //std::cout << world_rank << "SENDING TO (MODE 1)" << rank << std::endl;
                             //std::cout << "Sending size: " << local_length << " Inserting at: " << shift_start << std::endl; 
                             
-                            MPI_Send(input, h, MPI_INT, rank, shift_start, comm);
+                            MPI_Send(&input[0], h, MPI_INT, rank, shift_start, comm);
 
-                            std::copy(input + h, input + local_length, input);
+                            std::copy(&input[h], &input[local_length], &input[0]);
                             break;
                         }
                         else if (shift_end <= offsets_end[rank])
@@ -532,15 +507,15 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
                             //std::cout << world_rank << "SENDING TO (MODE 2)" << rank << std::endl;
                             //std::cout << "Sending size: " << local_length << " Inserting at: " << shift_start << std::endl; 
                             
-                            MPI_Send(input, local_length, MPI_INT, rank, shift_start, comm);
+                            MPI_Send(&input[0], local_length, MPI_INT, rank, shift_start, comm);
                         }
                         else if (shift_end >= offsets_start[rank + 1])
                         {
                             //std::cout << world_rank << "SENDING TO (MODE 3)" << rank << std::endl;
                             //std::cout << "Sending size: " << local_length << " Inserting at: " << shift_start << std::endl; 
 
-                            MPI_Send(input, offsets_end[rank] - shift_start + 1, MPI_INT, rank, shift_start, comm); //From calculated start to end of bucket -> Overlapping to next
-                            MPI_Send(input + offsets_end[rank] - shift_start + 1
+                            MPI_Send(&input[0], offsets_end[rank] - shift_start + 1, MPI_INT, rank, shift_start, comm); //From calculated start to end of bucket -> Overlapping to next
+                            MPI_Send(&input[offsets_end[rank] - shift_start + 1]
                                 ,local_length - (offsets_end[rank] - shift_start + 1), MPI_INT, rank + 1, offsets_start[rank+1], comm); //MPI send end piece to rank where end is found; from start of bucket to calculated end
                             break;
                             
@@ -556,7 +531,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
                 if ((shift_start < 0) and (shift_end)>= 0)
                 {
                         //std::cout << world_rank << "SENDING TO (MODE 4)" << 0 << std::endl;
-                        MPI_Send(input + local_length - (shift_end + 1), shift_end + 1, MPI_INT, 0, 0, comm);
+                        MPI_Send(&input[local_length - (shift_end + 1)], shift_end + 1, MPI_INT, 0, 0, comm);
                 }
                 
 
@@ -578,7 +553,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
                     MPI_Get_count(&status, MPI_INT, &number_amount);
 
                     
-                    MPI_Recv(input+position-offsets_start[world_rank],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start 
+                    MPI_Recv(&input[position-offsets_start[world_rank]],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start 
                     //std::cout << "Recieved " <<world_rank<< std::endl; 
                 }
                 else
@@ -593,7 +568,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
 
                     //std::cout << "position1" << position << std::endl;
                     
-                    MPI_Recv(input+position-offsets_start[world_rank],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start 
+                    MPI_Recv(&input[position-offsets_start[world_rank]],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start 
                     //std::cout << "Recieved " <<world_rank<< std::endl; 
 
                     if (number_amount < local_length){//If not enough recieve more 
@@ -605,7 +580,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
                         
                         //std::cout << "position2" << position << std::endl;
                         
-                        MPI_Recv(input+position-offsets_start[world_rank],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start
+                        MPI_Recv(&input[position-offsets_start[world_rank]],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start
                         //std::cout << "Recieved more" <<world_rank<< std::endl; 
                     }
                     /*
@@ -627,7 +602,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
             else if ((offsets_end[world_size -1] + 1 - offsets_start[world_rank] <= h))//Only zeroes are filled
             {
                 //std::cout << "Zeroes are added to rank " << world_rank <<std::endl;  
-                std::fill(input + local_length - h, input + local_length, 0);
+                std::fill(&input[local_length - h], &input[local_length], 0);
             }
             else { //Mixed case
                 //std::cout << "Entering mixed case on rank " << world_rank <<std::endl;  
@@ -642,15 +617,15 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
                     MPI_Get_count(&status, MPI_INT, &number_amount);
 
                     
-                    MPI_Recv(input+position-offsets_start[world_rank],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start 
+                    MPI_Recv(&input[position-offsets_start[world_rank]],number_amount, MPI_INT, MPI_ANY_SOURCE, position, MPI_COMM_WORLD, &status);//Recieve start 
                     //std::cout << "Recieved " <<world_rank<< std::endl; 
 
                     //Fill the rest with zeroes 
-                    std::fill(input + number_amount, input + local_length, 0);
+                    std::fill(&input[number_amount], &input[local_length], 0);
                 }
                 else
                 {
-                    std::fill(input + local_length - h, input + local_length, 0);
+                    std::fill(&input[local_length - h], &input[local_length], 0);
                 }
                 
                 
@@ -660,7 +635,7 @@ triple_t *typename_t_sort(int height, int id, triple_t localArray[], int size, M
    
     }
 
-bool all_singleton (tuple_ISA *input, MPI_Comm comm, const int world_rank,
+bool all_singleton (std::vector<tuple_ISA> &input, MPI_Comm comm, const int world_rank,
              const int world_size, int local_length){
 
     MPI_Datatype MPI_TUPLE_ISA;
@@ -672,7 +647,7 @@ bool all_singleton (tuple_ISA *input, MPI_Comm comm, const int world_rank,
 
     if (world_rank != 0)
     {
-        MPI_Send(input, 1, MPI_TUPLE_ISA, world_rank - 1, 0, comm);
+        MPI_Send(&input[0], 1, MPI_TUPLE_ISA, world_rank - 1, 0, comm);
     }
 
     tuple_ISA after_end[1]; 

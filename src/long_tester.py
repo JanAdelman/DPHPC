@@ -4,7 +4,7 @@ import string
 from termcolor import colored
 import subprocess
 
-WORD_LEN = 10**7
+WORD_LEN = 10**3
  
 #alphabet = string.ascii_uppercase
 alphabet = ["A","C","T","G"]
