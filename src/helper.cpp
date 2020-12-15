@@ -287,7 +287,7 @@ std::vector<tuple_t> typename_t_sort(int height, int id, std::vector<tuple_t> &l
         
     MPI_Datatype MPI_TUPLE_STRUCT;
     int lengths[2] = {1, K};
-    const MPI_Aint displacements[2] = {0, sizeof(int)};
+    MPI_Aint displacements[2] = {0, sizeof(int)};
     MPI_Datatype types[2] = {MPI_INT, MPI_CHAR};
     MPI_Type_create_struct(2, lengths, displacements, types, &MPI_TUPLE_STRUCT);
     MPI_Type_commit(&MPI_TUPLE_STRUCT);
@@ -309,8 +309,12 @@ std::vector<tuple_t> typename_t_sort(int height, int id, std::vector<tuple_t> &l
         if (parent == id)
         { // left child
         
+
+            
             
             rightChild = (id | (1 << local_height));
+
+            std::cout<<"height now"<<local_height<<"current id"<<id<<"right child"<<rightChild<<std::endl;
 
             int recieved_size;
             MPI_Status status;
@@ -320,6 +324,7 @@ std::vector<tuple_t> typename_t_sort(int height, int id, std::vector<tuple_t> &l
             MPI_Get_count(&status, MPI_TUPLE_STRUCT, &recieved_size);
             // allocate memory and receive array of right child
             half2.resize(recieved_size);
+            std::cout<< "child from which "<<id<< "receives"<<rightChild<<std::endl;
             MPI_Recv(&half2[0], recieved_size, MPI_TUPLE_STRUCT, rightChild, 0, MPI_COMM_WORLD, &status);
 
            // mergeResult = (tuple_t *)malloc((size + recieved_size) * sizeof(tuple_t));
@@ -330,12 +335,13 @@ std::vector<tuple_t> typename_t_sort(int height, int id, std::vector<tuple_t> &l
             // reassign half1 to merge result
             half1 = mergeResult;
 
-            if (local_height == 1 && id == 0)
+            if (local_height == height-1 && id == 0)
             {
                 return half1;
             }
 
             size = size + recieved_size;
+            std::cout<<"current height: "<<local_height<<"max height"<<height<<std::endl;
             local_height++;
             
         }
@@ -344,6 +350,7 @@ std::vector<tuple_t> typename_t_sort(int height, int id, std::vector<tuple_t> &l
             // send local array to parent
             
             std::cout << "Sedning " << id << std::endl;
+            std::cout<< "parent to which "<<id<< "send:"<<parent<<std::endl;
             MPI_Send(&half1[0], size, MPI_TUPLE_STRUCT, parent, 0, MPI_COMM_WORLD);
             local_height = height;
             std::cout << "Sent " << id << std::endl;
@@ -370,7 +377,7 @@ std::vector<triple_t> typename_t_sort(int height, int id, std::vector<triple_t> 
 {
     MPI_Datatype MPI_TRIPLE_STRUCT;
     int lengths_triple[3] = {1, 1, 1};
-    const MPI_Aint displacements_triple[3] = {0, sizeof(int), 2*sizeof(int)};
+    MPI_Aint displacements_triple[3] = {0, sizeof(int), 2*sizeof(int)};
     MPI_Datatype types_triple[3] = {MPI_INT, MPI_INT, MPI_INT};
     MPI_Type_create_struct(3, lengths_triple,
                            displacements_triple, types_triple, &MPI_TRIPLE_STRUCT);
@@ -414,7 +421,7 @@ std::vector<triple_t> typename_t_sort(int height, int id, std::vector<triple_t> 
             // reassign half1 to merge result
             half1 = mergeResult;
 
-            if (local_height == 1 && id == 0)
+            if (local_height == height-1 && id == 0)
             {
                 return half1;
             }
@@ -615,7 +622,7 @@ bool all_singleton (std::vector<tuple_ISA> &input, MPI_Comm comm, const int worl
 
     MPI_Datatype MPI_TUPLE_ISA;
     int lengths_ISA[2] = {1, 1};
-    const MPI_Aint displacements_ISA[2] = {0, sizeof(int)};
+    MPI_Aint displacements_ISA[2] = {0, sizeof(int)};
     MPI_Datatype types_ISA[2] = {MPI_INT, MPI_INT};
     MPI_Type_create_struct(2, lengths_ISA, displacements_ISA, types_ISA, &MPI_TUPLE_ISA);
     MPI_Type_commit(&MPI_TUPLE_ISA);

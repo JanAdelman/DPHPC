@@ -16,14 +16,14 @@ int main(int argc, char **argv)
     //SETUP TUPLE STRUCT
     MPI_Datatype MPI_TUPLE_STRUCT;
     int lengths[2] = {1, K};
-    const MPI_Aint displacements[2] = {0, sizeof(int)};
+    MPI_Aint displacements[2] = {0, sizeof(int)};
     MPI_Datatype types[2] = {MPI_INT, MPI_CHAR};
     MPI_Type_create_struct(2, lengths, displacements, types, &MPI_TUPLE_STRUCT);
     MPI_Type_commit(&MPI_TUPLE_STRUCT);
 
     MPI_Datatype MPI_TUPLE_ISA;
     int lengths_ISA[2] = {1, 1};
-    const MPI_Aint displacements_ISA[2] = {0, sizeof(int)};
+    MPI_Aint displacements_ISA[2] = {0, sizeof(int)};
     MPI_Datatype types_ISA[2] = {MPI_INT, MPI_INT};
     MPI_Type_create_struct(2, lengths_ISA, displacements_ISA, types_ISA, &MPI_TUPLE_ISA);
     MPI_Type_commit(&MPI_TUPLE_ISA);
@@ -320,7 +320,7 @@ int main(int argc, char **argv)
 
     MPI_Datatype MPI_TRIPLE_STRUCT;
     int lengths_triple[3] = {1, 1, 1};
-    const MPI_Aint displacements_triple[3] = {0, sizeof(int), 2*sizeof(int)};
+    MPI_Aint displacements_triple[3] = {0, sizeof(int), 2*sizeof(int)};
     MPI_Datatype types_triple[3] = {MPI_INT, MPI_INT, MPI_INT};
     MPI_Type_create_struct(3, lengths_triple,
                            displacements_triple, types_triple, &MPI_TRIPLE_STRUCT);
