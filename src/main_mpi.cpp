@@ -370,18 +370,13 @@ int main(int argc, char **argv)
             i++;
         }
     }
-    MPI_Barrier(MPI_COMM_WORLD);
 
-   
-    MPI_Barrier(MPI_COMM_WORLD);
 
     bool singleton = all_singleton(SA_B,MPI_COMM_WORLD, world_rank, world_size, sendcounts[world_rank]);
     MPI_Barrier(MPI_COMM_WORLD);
 
     bool singleton_global;
     MPI_Reduce(&singleton, &singleton_global, 1, MPI_C_BOOL, MPI_LAND, MASTER, MPI_COMM_WORLD);
-
-    MPI_Barrier(MPI_COMM_WORLD);
 
     MPI_Bcast(&singleton_global,1,MPI_C_BOOL,0,MPI_COMM_WORLD);
 

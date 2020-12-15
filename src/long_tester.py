@@ -1,10 +1,10 @@
 import os
 import random
 import string
-from termcolor import colored
+#from termcolor import colored
 import subprocess
 
-WORD_LEN = 10**8
+WORD_LEN = 10**3
  
 #alphabet = string.ascii_uppercase
 alphabet = ["A","C","T","G"]
@@ -37,13 +37,10 @@ output = str()
 with open("result.txt", "r") as file:
     output = file.read()
 
-if (output == expected_output):
-    color = "green"
-else:
-    color = "red"
+
 
 print("-" * 20)
 print("MPI: " + output[:20] + " : " + str(len(output)))
 print("EXP: " + expected_output[:20] +  " : "  + str(len(expected_output)))
-print(colored(output == expected_output, color))
+print(output == expected_output)
 
