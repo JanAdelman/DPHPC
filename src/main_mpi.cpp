@@ -43,74 +43,102 @@ int main(int argc, char **argv)
     //MAIN LOGIC
 
 
-    /*
-    char* input;
-    if (argc > 1){
-        input = argv[1];
-        //K = argv[2];
-    }
-    */
-
-
     //std::cout << "Data Reading" << std::endl;
 
 
-    std::ifstream in("./input.txt");
-    std::string input((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    //std::ifstream in("./input.txt");
+    //std::string input((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    //int string_length = input.length();
 
-    int string_length = input.length();
+    //reading in file to get the string length
+    std::ifstream is;
+    is.open ("./input.txt", std::ios::binary );
+    is.seekg (0, std::ios::end);
+    int string_length = is.tellg();
+    is.close();
+    std::cout<<string_length<<std::endl;
 
     //std::cout << "Data Read: Done!" << std::endl;
-
-    //char input[] = "agaagccagtactgcgacaaaggtaggacatggcgttgcaccaaatcagtaccggctccacaataattacaccatagggcaccgctatccgcgtgcgtca$";
-    //char input[] = "ABCDEFGHAHAHABCDEFGHAHAHABCDEFGHAHAH$";
-    //char input[] = "AAAASBBBL"; //overlapping string of k=2 and p=4
-    //char input[]="NJSDJSNMCXNCJDKHFUIAAAJ";
-    //char input[]="RAYASTOYANOVA";
     //char input[]="MISSISSIPPI$";
 
     int nmin = string_length / world_size;   //min step size to send
     int nextra = string_length % world_size; //remainder if not divisible by nprocessors
+    std::cout<<"nextra"<<nextra<<std::endl;
 
     int k = 0;
     int sendnums[world_size]; //size to send out to process i
     int displace[world_size];  //displacement from start
     //maybe do this world_size-1 to not include 0
-    for (int i = 1; i < world_size; i++)
+    for (int i = 0; i < world_size; i++)
     {
-        if (i - 1 < nextra) sendnums[i] = nmin + 1;
+        if (i < nextra) sendnums[i] = nmin + 1;
         else sendnums[i] = nmin;
         displace[i] = k;
         k = k + sendnums[i];
     }
-    sendnums[0] = nmin;
-    displace[0] = k;
+
+    for (int i = 0; i < world_size; i++)
+    {
+        std::cout<<"  sendums:   "<<sendnums[i]<<std::endl;
+        std::cout<<"     "<<displace[i]<<std::endl;
+    }
+    //sendnums[0] = nmin;
+    //displace[0] = k;
+
+    std::fstream File("./input.txt", std::ios::in | std::ios::out );
+    File.seekg(displace[world_rank], std::ios::beg);
+    char* input;
+    int size;
+    if(world_rank==world_size-1){
+        input=(char*)malloc(sizeof(char)*sendnums[world_rank]);
+        File.read(input, sendnums[world_rank]);
+        size=sendnums[world_rank]-K+1;
+        std::cout<<"size"<<size<<std::endl;
+        print_char_array(input,sendnums[world_rank]);
+    }
+    else{
+        input=(char*)malloc(sizeof(char)*(sendnums[world_rank]+K-1));
+        File.read(input, sendnums[world_rank]+K-1);
+        size=sendnums[world_rank];
+        print_char_array(input,sendnums[world_rank]+K-1);
+    }
+    //F[5] = 0;
+    //print_char_array(input,sendnums[world_rank]);
+    File.close();
+
+
+    //int string_length = input.length();
 
     std::vector<tuple_t> global_result_kmers;
 
 
-   //std::cout << "Sorting." << std::endl;
+   std::cout << "Sorting." << std::endl;
+
+   
 
     if (world_rank == MASTER)
     {
 
         //Send out overlapping substrings to workers
 
-
+        /*
         for (int rank = 1; rank < world_size; rank++)
         {
             MPI_Send(&input[displace[rank]], sendnums[rank] + K - 1, MPI_CHAR, rank, 0, MPI_COMM_WORLD);
         }
+        
+        */
 
-        //std::cout << "Allocating kmers!" << std::endl;
-        int size = sendnums[0] - K + 1;
+        std::cout << "Allocating kmers!" << std::endl;
+        //int size = sendnums[0] - K + 1;
 
         std::vector<tuple_t> kmers(size);
         //tuple_t kmers[size];
 
-        //std::cout << "Getting kmers!" << std::endl;
+        std::cout <<"world_rank"<<world_rank<<"Getting kmers!" << std::endl;
 
-        get_kmers_adapt(&input[displace[0]], K, kmers, size,displace[0]);
+        get_kmers_adapt(input, K, kmers, size,displace[0]);
+        std::cout<<"sorting stuff"<<std::endl;
         t_sort(kmers, size);
         //tuple_t_print(kmers, size);
 
@@ -118,39 +146,47 @@ int main(int argc, char **argv)
 
         global_result_kmers.resize(string_length - K + 1);
         global_result_kmers = typename_t_sort(log2(world_size), world_rank, kmers, size, MPI_COMM_WORLD);
+        t_print(global_result_kmers,string_length - K + 1);
 
     }
     else
     {
-        int size = sendnums[world_rank]+K-1;
+        //int size = sendnums[world_rank]+K-1;
 
-        char sub_input[size];
+        //char sub_input[size];
 
         //int recieved_size;
         //MPI_Status status;
-        MPI_Recv(&sub_input[0], size,MPI_CHAR, MASTER, 0, MPI_COMM_WORLD, NULL);
+        //MPI_Recv(&sub_input[0], size,MPI_CHAR, MASTER, 0, MPI_COMM_WORLD, NULL);
         //MPI_Get_count(&status, MPI_CHAR, &recieved_size);
 
-        //std::cout << "Allocating kmers!" << world_rank << std::endl;
-        std::vector<tuple_t> kmers(size - K + 1);
+        std::cout << "Allocating kmers!" << world_rank << std::endl;
+        if(world_rank==3){
+            std::cout<<"size"<<size<<std::endl;
+        }
+        std::vector<tuple_t> kmers(size);
 
-        //std::cout << "Getting kmers!" << std::endl;
-        get_kmers_adapt(sub_input, K, kmers, size - K + 1,displace[world_rank]);
+        std::cout <<"world_rank"<<world_rank<<"Getting kmers!" << std::endl;
+        get_kmers_adapt(input, K, kmers, size,displace[world_rank]);
+        std::cout<<"sorting stuff"<<world_rank<<std::endl;
 
 
         // sort the tuples lexicographically
-        t_sort(kmers, size - K + 1);
+        t_sort(kmers, size);
         //MPI_Barrier(MPI_COMM_WORLD);//should we insert this barrier or not?
 
 
          //std::cout << "Begin global sort on worker!"<<world_rank << std::endl;
 
         //Global sort
-        typename_t_sort(log2(world_size), world_rank, kmers, size - K + 1, MPI_COMM_WORLD);
+        typename_t_sort(log2(world_size), world_rank, kmers, size, MPI_COMM_WORLD);
         //std::cout << "Soting done on " << world_rank<< std::endl;
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
+
+    std::cout<<"fertig"<<std::endl;
+    
 
     //if (world_rank == 0)
      //   //std::cout << (*global_result_kmers).size()<<std::endl;
@@ -188,9 +224,11 @@ int main(int argc, char **argv)
         counts_bucket[i]=0;
     }
 
-    //std::cout << "Rebucketing" << std::endl;
+    std::cout << "Rebucketing" << std::endl;
 
     rebucketing(SA_B, recvbuf, sendcounts[world_rank], displs,counts_bucket,world_rank, world_size);
+
+    
 
 
 
@@ -232,7 +270,7 @@ int main(int argc, char **argv)
     //########################################################
     //########################################################
     //########################################################
-
+    
 
     for(int h=K;h<=string_length-K+1;h*=2)
     {
@@ -277,6 +315,9 @@ int main(int argc, char **argv)
     std::vector<int> B(sendcounts[world_rank]);
     reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank],displs[world_rank]);
 
+    std::cout<<world_rank<<std::endl;
+    print_int_array(B,sendcounts[world_rank]);
+
     int offsets[world_size];
     for(int i=0;i<world_size;i++){
         offsets[i]=displs[i]+sendcounts[i]-1;
@@ -296,6 +337,9 @@ int main(int argc, char **argv)
     //std::cout << "Shifting done!" << std::endl;
     //TRIPLES
 
+    //print_int_array(B2,sendcounts[world_rank]);
+    
+
     std::vector<triple_t> triple_arr(sendcounts[world_rank]);
     create_triple(B,B2,sendcounts[world_rank],displs[world_rank], triple_arr);
     //////std::cout << "-----" << std::endl;
@@ -313,12 +357,15 @@ int main(int argc, char **argv)
 
     if (world_rank == MASTER){
         global_result_triplet = typename_t_sort(log2(world_size), world_rank, triple_arr, sendcounts[world_rank], MPI_COMM_WORLD);
+        t_print(global_result_triplet,string_length-K+1);
     }
     else
     {
         typename_t_sort(log2(world_size), world_rank, triple_arr, sendcounts[world_rank], MPI_COMM_WORLD);
     }
     MPI_Barrier(MPI_COMM_WORLD);
+
+    
 
     //std::cout << "Triples sorted!" << std::endl;
 
@@ -375,6 +422,8 @@ int main(int argc, char **argv)
         }
     }
 
+    
+
 
     bool singleton = all_singleton(SA_B,MPI_COMM_WORLD, world_rank, world_size, sendcounts[world_rank]);
     MPI_Barrier(MPI_COMM_WORLD);
@@ -385,12 +434,13 @@ int main(int argc, char **argv)
     MPI_Bcast(&singleton_global,1,MPI_C_BOOL,0,MPI_COMM_WORLD);
 
     if(singleton_global){
+        std::cout<<"singleton is global"<<std::endl;
         std::vector<tuple_ISA> final_SA(string_length-K+1);
         MPI_Gatherv(&SA_B[0],sendcounts[world_rank],MPI_TUPLE_ISA,&final_SA[0],sendcounts,displs,MPI_TUPLE_ISA,0,MPI_COMM_WORLD);
+        std::cout<<"just gathered lol"<<std::endl;
         if(world_rank==0){
-            //int finalarr[]={11,10,7,4,1,0,9,8,6,3,5,2};
-
             debug_tuple_print(final_SA,string_length-K+1);
+            std::cout<<"please print this"<<std::endl;
 
         }
 
@@ -398,10 +448,12 @@ int main(int argc, char **argv)
         //get time of algo
 
         end = MPI_Wtime();
+        std::cout<<"Am I done??"<<std::endl;
 
         MPI_Finalize();
+        std::cout<<"Am I done??"<<std::endl;
         if (world_rank == 0) {
-            // print time elapsed on master node
+             //print time elapsed on master node
 
             std::cout <<  "*" << end-start << "*" << std::endl;
           }
@@ -414,6 +466,8 @@ int main(int argc, char **argv)
     }
     //MPI_Barrier(MPI_COMM_WORLD);
     // Finalize the MPI environment.
+    
     //MPI_Finalize();
     return 0;
+    
 }

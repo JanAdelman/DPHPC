@@ -55,7 +55,7 @@ void printArray(int array[], int n)
 }
 
 void run() {
-      char str[] = "RAYASTOYANOVA";
+      char str[] = "MISSISSIPPMISSISSIPP";
       int len = std::strlen(str);
       int *suffixArray = constructSuffixArray(str, len);
       

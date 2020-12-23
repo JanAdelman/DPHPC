@@ -8,7 +8,7 @@
 #include <ostream>
 #include <fstream>
 
-#define K 32
+#define K 5
 
 struct tuple_t
 {
@@ -188,6 +188,7 @@ bool tuple_t_compare(const tuple_t &a, const tuple_t &b)
 }
 bool triple_t_compare(const triple_t &a, const triple_t &b)
 {
+    /*
     if (a.b < b.b)
         return true;
     else if (a.b > b.b)
@@ -206,6 +207,8 @@ bool triple_t_compare(const triple_t &a, const triple_t &b)
                 return false;
         }
     }
+    */
+   return a.b < b.b || (a.b == b.b && a.b2 < b.b2) || (a.b == b.b && a.b2 == b.b2 && a.idx < b.idx);
 }
 
 

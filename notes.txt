@@ -3,3 +3,10 @@
 -> Implement the naive algorithm using parallel merge sort and compare to current implementation
 -> Encode nucleotide as 2 bit
 -> consider bucket sort
+-> Can still use ALltoallv with overlaps, just set right sendcounts
+-> use good sorting algorithm instead of reoder to string order
+->Alltoallv 
+->Does finding with seekg allocate memory? Would it be better to simply divide the file_size over the bit of a char?
+-> Found problem: With prefix doubling, we have ignored until now the case where in the end the kmer may be bigger than
+the same kmer within the string, but it will be put as smaller because of the large initial shift. How to circumvent? In the first iteration,
+we check who is actually bigger. Other option: simply add k-1 termination characters.
