@@ -56,14 +56,13 @@ int main(int argc, char **argv)
     is.seekg (0, std::ios::end);
     int string_length = is.tellg();
     is.close();
-    std::cout<<string_length<<std::endl;
+    //std::cout<<string_length<<std::endl;
 
     //std::cout << "Data Read: Done!" << std::endl;
     //char input[]="MISSISSIPPI$";
 
     int nmin = string_length / world_size;   //min step size to send
     int nextra = string_length % world_size; //remainder if not divisible by nprocessors
-    std::cout<<"nextra"<<nextra<<std::endl;
 
     int k = 0;
     int sendnums[world_size]; //size to send out to process i
@@ -77,13 +76,6 @@ int main(int argc, char **argv)
         k = k + sendnums[i];
     }
 
-    for (int i = 0; i < world_size; i++)
-    {
-        std::cout<<"  sendums:   "<<sendnums[i]<<std::endl;
-        std::cout<<"     "<<displace[i]<<std::endl;
-    }
-    //sendnums[0] = nmin;
-    //displace[0] = k;
 
     std::fstream File("./input.txt", std::ios::in | std::ios::out );
     File.seekg(displace[world_rank], std::ios::beg);
@@ -94,13 +86,13 @@ int main(int argc, char **argv)
         File.read(input, sendnums[world_rank]);
         size=sendnums[world_rank]-K+1;
         std::cout<<"size"<<size<<std::endl;
-        print_char_array(input,sendnums[world_rank]);
+        //print_char_array(input,sendnums[world_rank]);
     }
     else{
         input=(char*)malloc(sizeof(char)*(sendnums[world_rank]+K-1));
         File.read(input, sendnums[world_rank]+K-1);
         size=sendnums[world_rank];
-        print_char_array(input,sendnums[world_rank]+K-1);
+        //print_char_array(input,sendnums[world_rank]+K-1);
     }
     //F[5] = 0;
     //print_char_array(input,sendnums[world_rank]);
@@ -112,7 +104,7 @@ int main(int argc, char **argv)
     std::vector<tuple_t> global_result_kmers;
 
 
-   std::cout << "Sorting." << std::endl;
+  // std::cout << "Sorting." << std::endl;
 
    
 
@@ -129,16 +121,17 @@ int main(int argc, char **argv)
         
         */
 
-        std::cout << "Allocating kmers!" << std::endl;
+        //std::cout << "Allocating kmers!" << std::endl;
         //int size = sendnums[0] - K + 1;
 
         std::vector<tuple_t> kmers(size);
         //tuple_t kmers[size];
 
-        std::cout <<"world_rank"<<world_rank<<"Getting kmers!" << std::endl;
+        //std::cout <<"world_rank"<<world_rank<<"Getting kmers!" << std::endl;
 
         get_kmers_adapt(input, K, kmers, size,displace[0]);
-        std::cout<<"sorting stuff"<<std::endl;
+        free(input);
+        //std::cout<<"sorting stuff"<<std::endl;
         t_sort(kmers, size);
         //tuple_t_print(kmers, size);
 
@@ -146,7 +139,9 @@ int main(int argc, char **argv)
 
         global_result_kmers.resize(string_length - K + 1);
         global_result_kmers = typename_t_sort(log2(world_size), world_rank, kmers, size, MPI_COMM_WORLD);
-        t_print(global_result_kmers,string_length - K + 1);
+        kmers.clear();
+        kmers.shrink_to_fit();
+        //t_print(global_result_kmers,string_length - K + 1);
 
     }
     else
@@ -160,15 +155,13 @@ int main(int argc, char **argv)
         //MPI_Recv(&sub_input[0], size,MPI_CHAR, MASTER, 0, MPI_COMM_WORLD, NULL);
         //MPI_Get_count(&status, MPI_CHAR, &recieved_size);
 
-        std::cout << "Allocating kmers!" << world_rank << std::endl;
-        if(world_rank==3){
-            std::cout<<"size"<<size<<std::endl;
-        }
+        //std::cout << "Allocating kmers!" << world_rank << std::endl;
         std::vector<tuple_t> kmers(size);
 
-        std::cout <<"world_rank"<<world_rank<<"Getting kmers!" << std::endl;
+        //std::cout <<"world_rank"<<world_rank<<"Getting kmers!" << std::endl;
         get_kmers_adapt(input, K, kmers, size,displace[world_rank]);
-        std::cout<<"sorting stuff"<<world_rank<<std::endl;
+        free(input);
+        //std::cout<<"sorting stuff"<<world_rank<<std::endl;
 
 
         // sort the tuples lexicographically
@@ -180,12 +173,14 @@ int main(int argc, char **argv)
 
         //Global sort
         typename_t_sort(log2(world_size), world_rank, kmers, size, MPI_COMM_WORLD);
+        kmers.clear();
+        kmers.shrink_to_fit();
         //std::cout << "Soting done on " << world_rank<< std::endl;
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    std::cout<<"fertig"<<std::endl;
+    //std::cout<<"fertig"<<std::endl;
     
 
     //if (world_rank == 0)
@@ -224,7 +219,7 @@ int main(int argc, char **argv)
         counts_bucket[i]=0;
     }
 
-    std::cout << "Rebucketing" << std::endl;
+    //std::cout << "Rebucketing" << std::endl;
 
     rebucketing(SA_B, recvbuf, sendcounts[world_rank], displs,counts_bucket,world_rank, world_size);
 
@@ -258,10 +253,12 @@ int main(int argc, char **argv)
             i++;
         }
     }
+    recvbuf.clear();
+    recvbuf.shrink_to_fit();
     MPI_Barrier(MPI_COMM_WORLD);
 
 
-    //std::cout << "Rebucketing done!" << std::endl;
+    std::cout << "Rebucketing done!" << std::endl;
 
 
     //t_print(SA_B, sendcounts[world_rank]); Correct
@@ -297,26 +294,31 @@ int main(int argc, char **argv)
         counts_filled[id]++;
     }
 
-    ////std::cout << "Pro ing all to allv" <<std::endl;
+    std::cout << "Pro ing all to allv" <<std::endl;
 
 
 
 
 
     //this array must be updated after every for loop
+    //std::vector<tuple_ISA> recvbuf_ISA(sendcounts[world_rank]);
     std::vector<tuple_ISA> recvbuf_ISA = probing_alltoallv(sendbufISA, displace_ISA, sendcounts[world_rank], world_size, counts_bucket, MPI_COMM_WORLD, world_rank, MPI_TUPLE_ISA);
-
-
-
+    //problem: displacements in recvbuf not known. Could we probe?
+    //MPI_Alltoallv(&sendbufISA,counts_bucket,displace_ISA,MPI_TUPLE_ISA,recvbuf_ISA,)
+    //sendbufISA.clear();
+    //sendbufISA.shrink_to_fit();
     MPI_Barrier(MPI_COMM_WORLD);
+    sendbufISA.clear();
+    sendbufISA.shrink_to_fit();
 
-    //std::cout << "Reordering" << std::endl;
+    std::cout << "Reordering" << std::endl;
 
     std::vector<int> B(sendcounts[world_rank]);
     reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank],displs[world_rank]);
+    recvbuf_ISA.clear();
+    recvbuf_ISA.shrink_to_fit();
 
-    std::cout<<world_rank<<std::endl;
-    print_int_array(B,sendcounts[world_rank]);
+    //print_int_array(B,sendcounts[world_rank]);
 
     int offsets[world_size];
     for(int i=0;i<world_size;i++){
@@ -326,15 +328,18 @@ int main(int argc, char **argv)
     std::vector<int> B2(sendcounts[world_rank]);
     std::copy(B.begin(),B.begin() + sendcounts[world_rank],B2.begin());
 
-    //std::cout << "Reordered!" << std::endl;
+    if(world_rank==0){
+
+    std::cout << "Reordered!" << std::endl;
 
 
-    //std::cout << "Shifting" << std::endl;
+    std::cout << "Shifting" << std::endl;
+    }
 
     //SHIFTING
     naive_shift(B2, h, MPI_COMM_WORLD, world_rank, world_size, displs, sendcounts[world_rank], offsets);
 
-    //std::cout << "Shifting done!" << std::endl;
+    std::cout <<world_rank<<"Shifting done!" << std::endl;
     //TRIPLES
 
     //print_int_array(B2,sendcounts[world_rank]);
@@ -342,6 +347,11 @@ int main(int argc, char **argv)
 
     std::vector<triple_t> triple_arr(sendcounts[world_rank]);
     create_triple(B,B2,sendcounts[world_rank],displs[world_rank], triple_arr);
+    B.clear();
+    B.shrink_to_fit();
+    B2.clear();
+    B2.shrink_to_fit();
+
     //////std::cout << "-----" << std::endl;
 
 
@@ -357,12 +367,14 @@ int main(int argc, char **argv)
 
     if (world_rank == MASTER){
         global_result_triplet = typename_t_sort(log2(world_size), world_rank, triple_arr, sendcounts[world_rank], MPI_COMM_WORLD);
-        t_print(global_result_triplet,string_length-K+1);
+        //t_print(global_result_triplet,string_length-K+1);
     }
     else
     {
         typename_t_sort(log2(world_size), world_rank, triple_arr, sendcounts[world_rank], MPI_COMM_WORLD);
     }
+    triple_arr.clear();
+    triple_arr.shrink_to_fit();
     MPI_Barrier(MPI_COMM_WORLD);
 
     
@@ -421,9 +433,8 @@ int main(int argc, char **argv)
             i++;
         }
     }
-
-    
-
+    recvbuf_triplets.clear();
+    recvbuf_triplets.shrink_to_fit();
 
     bool singleton = all_singleton(SA_B,MPI_COMM_WORLD, world_rank, world_size, sendcounts[world_rank]);
     MPI_Barrier(MPI_COMM_WORLD);

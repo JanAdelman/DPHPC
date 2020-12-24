@@ -4,7 +4,7 @@ import string
 #from termcolor import colored
 import subprocess
 
-WORD_LEN = 10**2
+WORD_LEN = 10**5
  
 #alphabet = string.ascii_uppercase
 alphabet = ["A","C","T","G"]
@@ -12,7 +12,7 @@ input_string = ''.join(random.choices(alphabet, k=WORD_LEN))
 #input_string="ATATAACCATAAATATAC"
 WORD_LEN = len(input_string)
 
-k = 5
+k = 32
 terminator="$"*(k-1)
 input_string=input_string+terminator
 
@@ -41,7 +41,6 @@ print("MPI done!")
 output = str()
 with open("result.txt", "r") as file:
     output = file.read()
-print(output)
 
 
 

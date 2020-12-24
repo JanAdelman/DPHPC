@@ -8,7 +8,7 @@
 #include <ostream>
 #include <fstream>
 
-#define K 5
+#define K 32
 
 struct tuple_t
 {
