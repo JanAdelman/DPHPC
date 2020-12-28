@@ -82,14 +82,16 @@ int main(int argc, char **argv)
     char* input;
     int size;
     if(world_rank==world_size-1){
-        input=(char*)malloc(sizeof(char)*sendnums[world_rank]);
+        //input=(char*)malloc(sizeof(char)*sendnums[world_rank]);
+        input=new char[sendnums[world_rank]];
         File.read(input, sendnums[world_rank]);
         size=sendnums[world_rank]-K+1;
         std::cout<<"size"<<size<<std::endl;
         //print_char_array(input,sendnums[world_rank]);
     }
     else{
-        input=(char*)malloc(sizeof(char)*(sendnums[world_rank]+K-1));
+        //input=(char*)malloc(sizeof(char)*(sendnums[world_rank]+K-1));
+        input=new char[sendnums[world_rank]+K-1];
         File.read(input, sendnums[world_rank]+K-1);
         size=sendnums[world_rank];
         //print_char_array(input,sendnums[world_rank]+K-1);
@@ -104,7 +106,7 @@ int main(int argc, char **argv)
     std::vector<tuple_t> global_result_kmers;
 
 
-  // std::cout << "Sorting." << std::endl;
+  std::cout << "Sorting." << std::endl;
 
    
 
@@ -127,11 +129,12 @@ int main(int argc, char **argv)
         std::vector<tuple_t> kmers(size);
         //tuple_t kmers[size];
 
-        //std::cout <<"world_rank"<<world_rank<<"Getting kmers!" << std::endl;
+        std::cout <<"world_rank"<<world_rank<<"Getting kmers!" << std::endl;
 
         get_kmers_adapt(input, K, kmers, size,displace[0]);
-        free(input);
-        //std::cout<<"sorting stuff"<<std::endl;
+        //free(input);
+        delete[] input;
+        std::cout<<"sorting stuff"<<std::endl;
         t_sort(kmers, size);
         //tuple_t_print(kmers, size);
 
@@ -160,7 +163,8 @@ int main(int argc, char **argv)
 
         //std::cout <<"world_rank"<<world_rank<<"Getting kmers!" << std::endl;
         get_kmers_adapt(input, K, kmers, size,displace[world_rank]);
-        free(input);
+        //free(input);
+        delete[] input;
         //std::cout<<"sorting stuff"<<world_rank<<std::endl;
 
 
