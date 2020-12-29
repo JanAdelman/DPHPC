@@ -324,7 +324,7 @@ std::vector<tuple_t> typename_t_sort(int height, int id, std::vector<tuple_t> &l
            // mergeResult = (tuple_t *)malloc((size + recieved_size) * sizeof(tuple_t));
             // merge half1 and half2 into mergeResult
 
-            mergeResult.reserve(size+recieved_size);
+            mergeResult.resize(size+recieved_size);
             std::merge(half1.begin(), half1.end(), half2.begin(), half2.end(), mergeResult.begin(), tuple_t_compare);
             // reassign half1 to merge result
             half1 = mergeResult;
@@ -407,7 +407,7 @@ std::vector<triple_t> typename_t_sort(int height, int id, std::vector<triple_t> 
             //t_print_flat(half2, recieved_size , rightChild, id);
 
             //mergeResult = (triple_t *)malloc((size + recieved_size) * sizeof(triple_t));
-            mergeResult.reserve(size+recieved_size);
+            mergeResult.resize(size+recieved_size);
             // merge half1 and half2 into mergeResult
 
             std::merge(half1.begin(), half1.begin() + size, half2.begin(), half2.begin() + recieved_size, mergeResult.begin(), triple_t_compare);
