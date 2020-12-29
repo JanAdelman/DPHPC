@@ -8,13 +8,14 @@
 #include <ostream>
 #include <fstream>
 
-#define K 32
+#define K_SIZE 32
 
 struct tuple_t
 {
     int idx;
-    char seq[K];
+    char seq[K_SIZE];
 };
+
 
 struct triple_t
 {
@@ -57,7 +58,7 @@ void rebucketing(std::vector<tuple_ISA> &SA_B, std::vector<tuple_t> &kmers, size
     int id_zero=bucket_id(displ,SA_B[0],world_size);
     counts[id_zero]+=1;
     for(int i=1;i<size;i++){
-        if(!std::lexicographical_compare(kmers[i-1].seq, kmers[i-1].seq + K, kmers[i].seq, kmers[i].seq + K)){
+        if(!std::lexicographical_compare(kmers[i-1].seq, kmers[i-1].seq + K_SIZE, kmers[i].seq, kmers[i].seq + K_SIZE)){
             SA_B[i].B=SA_B[i-1].B;
             SA_B[i].SA=kmers[i].idx;
             int id=bucket_id(displ,SA_B[i],world_size);
@@ -169,23 +170,17 @@ bool char_array_comp(const char* a, const char* b, int size){
     return same;
 }
 
-bool tuple_t_compare(const tuple_t &a, const tuple_t &b)
-{
-
-    if(std::lexicographical_compare(a.seq, a.seq + K, b.seq, b.seq + K)){
+bool tuple_t_compare(const tuple_t &a, const tuple_t &b) {
+    int res = std::strcmp(a.seq, b.seq);
+    if (res < 0)
         return true;
-    }
-    else{
-        if(char_array_comp(a.seq,b.seq,K)){
-            return a.idx<b.idx;
-        }
-        else{
-            return false;
-        }
-    }
-
-    //return !std::lexicographical_compare(b.seq, b.seq + K, a.seq, a.seq + K);
+    else if (res == 0)
+        return a.idx<b.idx;
+    else 
+        return false;
 }
+
+
 bool triple_t_compare(const triple_t &a, const triple_t &b)
 {
     /*
@@ -225,7 +220,7 @@ void t_sort(std::vector<triple_t> &input, size_t size)
 void t_print(std::vector<tuple_t> &input, size_t size)
 {
     for (int i = 0; i < size; i++){
-        print_char_array(input[i].seq, K);
+        print_char_array(input[i].seq, K_SIZE);
         std::cout<<"     "<<input[i].idx<<std::endl;
     }
     std::cout << "---" << std::endl;
@@ -289,7 +284,7 @@ std::vector<tuple_t> typename_t_sort(int height, int id, std::vector<tuple_t> &l
 {
 
     MPI_Datatype MPI_TUPLE_STRUCT;
-    int lengths[2] = {1, K};
+    int lengths[2] = {1, K_SIZE};
     MPI_Aint displacements[2] = {0, sizeof(int)};
     MPI_Datatype types[2] = {MPI_INT, MPI_CHAR};
     MPI_Type_create_struct(2, lengths, displacements, types, &MPI_TUPLE_STRUCT);
