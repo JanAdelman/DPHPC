@@ -44,12 +44,8 @@ int main(int argc, char **argv)
     //MAIN LOGIC
 
 
-    //std::cout << "Data Reading: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Data Reading: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
-
-    //std::ifstream in("./input.txt");
-    //std::string input((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    //int string_length = input.length();
 
     //reading in file to get the string length
     std::ifstream is;
@@ -100,7 +96,7 @@ int main(int argc, char **argv)
     //print_char_array(input,sendnums[world_rank]);
     File.close();
 
-    //std::cout << "Data Read: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Data Read: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
 
     //int string_length = input.length();
@@ -122,16 +118,13 @@ int main(int argc, char **argv)
         
         */
 
-        ////std::cout << "Allocating kmers!" << std::endl;
-        //int size = sendnums[0] - K_SIZE + 1;
-
         std::vector<tuple_t> kmers(size);
         //tuple_t kmers[size];
-        //std::cout << "Getting Kmers: " << MPI_Wtime() << "|" << world_rank << std::endl;
+        std::cout << "Getting Kmers: " << MPI_Wtime() << "|" << world_rank << std::endl;
         get_kmers_adapt(input, K_SIZE, kmers, size,displace[0]);
-        //std::cout << "Got Kmers: " << MPI_Wtime() << "|" << world_rank << std::endl;
+        std::cout << "Got Kmers: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
-        //std::cout << "Data Sorting: " << MPI_Wtime() << "|" << world_rank << std::endl;
+        std::cout << "Data Sorting: " << MPI_Wtime() << "|" << world_rank << std::endl;
         //free(input);
         delete[] input;
 
@@ -161,13 +154,13 @@ int main(int argc, char **argv)
 
         ////std::cout << "Allocating kmers!" << world_rank << std::endl;
         std::vector<tuple_t> kmers(size);
-        //std::cout << "Getting Kmers: " << MPI_Wtime() << "|" << world_rank << std::endl;
+        std::cout << "Getting Kmers: " << MPI_Wtime() << "|" << world_rank << std::endl;
         ////std::cout <<"world_rank"<<world_rank<<"Getting kmers!" << std::endl;
         get_kmers_adapt(input, K_SIZE, kmers, size,displace[world_rank]);
 
-        //std::cout << "Got Kmers: " << MPI_Wtime() << "|" << world_rank << std::endl;
+        std::cout << "Got Kmers: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
-        //std::cout << "Data Sorting: " << MPI_Wtime() << "|" << world_rank << std::endl;
+        std::cout << "Data Sorting: " << MPI_Wtime() << "|" << world_rank << std::endl;
         //free(input);
         delete[] input;
         ////std::cout<<"sorting stuff"<<world_rank<<std::endl;
@@ -189,7 +182,7 @@ int main(int argc, char **argv)
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    //std::cout << "Sorting done: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Sorting done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
     int kmin = (string_length - K_SIZE + 1) / world_size;   //min step size to send
     int kextra = (string_length - K_SIZE + 1) % world_size; //remainder if not divisible by nprocessors
@@ -225,7 +218,7 @@ int main(int argc, char **argv)
         counts_bucket[i]=0;
     }
 
-    //std::cout << "Data Rebucketing: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Data Rebucketing: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
     rebucketing(SA_B, recvbuf, sendcounts[world_rank], displs,counts_bucket,world_rank, world_size);
 
@@ -265,7 +258,7 @@ int main(int argc, char **argv)
     MPI_Barrier(MPI_COMM_WORLD);
 
 
-    //std::cout << "Rebucketing done: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Rebucketing done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
 
     for(int h=K_SIZE;h<=string_length-K_SIZE+1;h*=2)
@@ -289,7 +282,7 @@ int main(int argc, char **argv)
         counts_filled[id]++;
     }
 
-    //std::cout << "All to All V: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "All to All V: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
     //this array must be updated after every for loop
     //std::vector<tuple_ISA> recvbuf_ISA(sendcounts[world_rank]);
@@ -303,9 +296,9 @@ int main(int argc, char **argv)
     //sendbufISA.shrink_to_fit();
     std::vector<tuple_ISA>().swap(sendbufISA);
 
-    //std::cout << "All to All V Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "All to All V Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
-    //std::cout << "Reorder to String Order: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Reorder to String Order: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
     std::vector<int> B(sendcounts[world_rank]);
     reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank],displs[world_rank]);
@@ -323,13 +316,13 @@ int main(int argc, char **argv)
     std::vector<int> B2(sendcounts[world_rank]);
     std::copy(B.begin(),B.begin() + sendcounts[world_rank],B2.begin());
 
-    //std::cout << "Reorder to String Order Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Reorder to String Order Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
-    //std::cout << "Shifting: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Shifting: " << MPI_Wtime() << "|" << world_rank << std::endl;
     //SHIFTING
     naive_shift(B2, h, MPI_COMM_WORLD, world_rank, world_size, displs, sendcounts[world_rank], offsets);
 
-    //std::cout << "Shifting done: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Shifting done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
     //TRIPLES
 
@@ -346,7 +339,7 @@ int main(int argc, char **argv)
     std::vector<int>().swap(B2);
 
 
-    //std::cout << "Sort Triples: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Sort Triples: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
     //SORT LOCALLY
     t_sort(triple_arr, sendcounts[world_rank]);
@@ -370,7 +363,7 @@ int main(int argc, char **argv)
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    //std::cout << "Sort Triples Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Sort Triples Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
 
     MPI_Datatype MPI_TRIPLE_STRUCT;
@@ -384,18 +377,18 @@ int main(int argc, char **argv)
     //SCATTER
 
 
-    //std::cout << "Data Scattering: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Data Scattering: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
     std::vector<triple_t> recvbuf_triplets(sendcounts[world_rank]);
     MPI_Scatterv(&global_result_triplet[0], sendcounts, displs, MPI_TRIPLE_STRUCT, &recvbuf_triplets[0], sendcounts[world_rank], MPI_TRIPLE_STRUCT, 0, MPI_COMM_WORLD);
 
     std::vector<triple_t>().swap(global_result_triplet);
-    //std::cout << "Data Scattering Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Data Scattering Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
     //REBUCKET
 
 
-    //std::cout << "Rebucketing: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Rebucketing: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
 
     //int counts_bucket[world_size];//counts of tuples to send out to each processor
@@ -438,9 +431,9 @@ int main(int argc, char **argv)
     std::vector<triple_t>().swap(recvbuf_triplets);
 
 
-    //std::cout << "Rebucketing Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Rebucketing Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
-    //std::cout << "Checking Singleton: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Checking Singleton: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
 
     bool singleton = all_singleton(SA_B,MPI_COMM_WORLD, world_rank, world_size, sendcounts[world_rank]);
@@ -479,7 +472,7 @@ int main(int argc, char **argv)
     }
 
     }
-    //std::cout << "Singleton Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    std::cout << "Singleton Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
 
     //MPI_Barrier(MPI_COMM_WORLD);
