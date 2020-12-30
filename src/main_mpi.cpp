@@ -142,8 +142,9 @@ int main(int argc, char **argv)
 
         global_result_kmers.reserve(string_length - K_SIZE + 1);
         global_result_kmers = typename_t_sort(log2(world_size), world_rank, kmers, size, MPI_COMM_WORLD);
-        kmers.clear();
-        kmers.shrink_to_fit();
+        //kmers.clear();
+        //kmers.shrink_to_fit();
+        std::vector<tuple_t>().swap(kmers);
         //t_print(global_result_kmers,string_length - K_SIZE + 1);
 
     }
@@ -181,8 +182,9 @@ int main(int argc, char **argv)
         //Global sort
         typename_t_sort(log2(world_size), world_rank, kmers, size, MPI_COMM_WORLD);
  
-        kmers.clear();
-        kmers.shrink_to_fit();
+        //kmers.clear();
+        //kmers.shrink_to_fit();
+        std::vector<tuple_t>().swap(kmers);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -210,6 +212,9 @@ int main(int argc, char **argv)
     ////////std::cout<<"before scattering"<<std::endl;
     MPI_Scatterv(&global_result_kmers[0], sendcounts, displs, MPI_TUPLE_STRUCT,
      &recvbuf[0], sendcounts[world_rank], MPI_TUPLE_STRUCT, 0, MPI_COMM_WORLD);
+
+    std::vector<tuple_t>().swap(global_result_kmers);
+
 
     //tuple_ISA SA_B[sendcounts[world_rank]];//array of tuples on this processor
     std::vector<tuple_ISA> SA_B(sendcounts[world_rank]);
@@ -254,8 +259,9 @@ int main(int argc, char **argv)
             i++;
         }
     }
-    recvbuf.clear();
-    recvbuf.shrink_to_fit();
+    //recvbuf.clear();
+    //recvbuf.shrink_to_fit();
+    std::vector<tuple_t>().swap(recvbuf);
     MPI_Barrier(MPI_COMM_WORLD);
 
 
@@ -293,8 +299,9 @@ int main(int argc, char **argv)
     //sendbufISA.clear();
     //sendbufISA.shrink_to_fit();
     MPI_Barrier(MPI_COMM_WORLD);
-    sendbufISA.clear();
-    sendbufISA.shrink_to_fit();
+    //sendbufISA.clear();
+    //sendbufISA.shrink_to_fit();
+    std::vector<tuple_ISA>().swap(sendbufISA);
 
     //std::cout << "All to All V Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
@@ -302,8 +309,9 @@ int main(int argc, char **argv)
 
     std::vector<int> B(sendcounts[world_rank]);
     reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank],displs[world_rank]);
-    recvbuf_ISA.clear();
-    recvbuf_ISA.shrink_to_fit();
+    //recvbuf_ISA.clear();
+    //recvbuf_ISA.shrink_to_fit();
+    std::vector<tuple_ISA>().swap(recvbuf_ISA);
 
     //print_int_array(B,sendcounts[world_rank]);
 
@@ -330,10 +338,13 @@ int main(int argc, char **argv)
 
     std::vector<triple_t> triple_arr(sendcounts[world_rank]);
     create_triple(B,B2,sendcounts[world_rank],displs[world_rank], triple_arr);
-    B.clear();
-    B.shrink_to_fit();
-    B2.clear();
-    B2.shrink_to_fit();
+    //B.clear();
+   // B.shrink_to_fit();
+    //B2.clear();
+    //B2.shrink_to_fit();
+    std::vector<int>().swap(B);
+    std::vector<int>().swap(B2);
+
 
     //std::cout << "Sort Triples: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
@@ -353,8 +364,10 @@ int main(int argc, char **argv)
     {
         typename_t_sort(log2(world_size), world_rank, triple_arr, sendcounts[world_rank], MPI_COMM_WORLD);
     }
-    triple_arr.clear();
-    triple_arr.shrink_to_fit();
+    //triple_arr.clear();
+    //triple_arr.shrink_to_fit();
+    std::vector<triple_t>().swap(triple_arr);
+
     MPI_Barrier(MPI_COMM_WORLD);
 
     //std::cout << "Sort Triples Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
@@ -376,7 +389,7 @@ int main(int argc, char **argv)
     std::vector<triple_t> recvbuf_triplets(sendcounts[world_rank]);
     MPI_Scatterv(&global_result_triplet[0], sendcounts, displs, MPI_TRIPLE_STRUCT, &recvbuf_triplets[0], sendcounts[world_rank], MPI_TRIPLE_STRUCT, 0, MPI_COMM_WORLD);
 
-
+    std::vector<triple_t>().swap(global_result_triplet);
     //std::cout << "Data Scattering Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
     //REBUCKET
@@ -420,8 +433,10 @@ int main(int argc, char **argv)
             i++;
         }
     }
-    recvbuf_triplets.clear();
-    recvbuf_triplets.shrink_to_fit();
+    //recvbuf_triplets.clear();
+    //recvbuf_triplets.shrink_to_fit();
+    std::vector<triple_t>().swap(recvbuf_triplets);
+
 
     //std::cout << "Rebucketing Done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
