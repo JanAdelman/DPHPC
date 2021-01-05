@@ -13,10 +13,8 @@ input_string = ''.join(random.choices(alphabet, k=WORD_LEN))
 WORD_LEN = len(input_string)
 
 k = 32
-terminator="$"*(k-1)
-input_string=input_string+terminator
-
-
+#terminator="$"*(k-1)
+#input_string=input_string+terminator
 
 kmers = dict()
 for i in range(len(input_string)-k+1):
