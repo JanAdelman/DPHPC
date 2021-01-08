@@ -9,8 +9,9 @@
 #include "mxx/include/mxx/sort.hpp"
 #include "mxx/include/mxx/datatypes.hpp"
 
-
 #define MASTER 0
+
+std::string INPUT_PATH = "./data/input.txt";
 
 int main(int argc, char **argv)
 {
@@ -64,17 +65,11 @@ int main(int argc, char **argv)
     //reading in file to get the string length
     
     std::ifstream is;
-    is.open ("./input.txt", std::ios::binary );
+    is.open (INPUT_PATH, std::ios::binary );
     is.seekg (0, std::ios::end);
     int string_length = is.tellg();
     is.close();
-    std::cout<<string_length<<std::endl;
-    std::cout<<"size of uint"<<sizeof(__int128_t)<<std::endl;
-    //showMemUsage("read input file", world_rank);
     
-    
-    //char input[]="MISSISSIPPI$";
-    //int string_length=strlen(input);
     int kmin = (string_length - K_SIZE + 1) / world_size;   //min step size to send
     int kextra = (string_length - K_SIZE + 1) % world_size; //remainder if not divisible by nprocessors
     int now = 0;
@@ -109,14 +104,14 @@ int main(int argc, char **argv)
         displace[i]=displace[i-1]+sendnums[i-1]-K_SIZE+1;
     }
 
-    for(int i=0;i<world_rank;i++){
-        std::cout<<sendnums[i]<<std::endl;
-    }
+    //for(int i=0;i<world_rank;i++){
+    //    std::cout<<sendnums[i]<<std::endl;
+    //}
 
     //showMemUsage("getting displ and sendnums", world_rank);
 
 
-    std::fstream File("./input.txt", std::ios::in | std::ios::out );
+    std::fstream File(INPUT_PATH, std::ios::in | std::ios::out );
     File.seekg(displace[world_rank], std::ios::beg);
     char* input=new char[sendnums[world_rank]];
     File.read(input, sendnums[world_rank]);
@@ -124,14 +119,14 @@ int main(int argc, char **argv)
     File.close();
     //F[5] = 0;
     //print_char_array(input,sendnums[world_rank]);
-    std::cout<<world_rank<<"world rank "<<size<<"size"<<std::endl;
+    //std::cout<<world_rank<<"world rank "<<size<<"size"<<std::endl;
     
     //showMemUsage("After opening file", world_rank);
 
     //std::cout << "Data Read: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
 
-    std::cout<<"wr: "<<world_rank<<"size: "<<size<<std::endl;
+    //std::cout<<"wr: "<<world_rank<<"size: "<<size<<std::endl;
     std::vector<tuple_t<unsigned long long int, int>> kmers(size);
     //std::cout<<world_rank<<"Made vector"<<std::endl;
     get_kmers_adapt(input, K_SIZE, kmers, size,displace[world_rank]);
@@ -188,7 +183,7 @@ int main(int argc, char **argv)
     
 
 
-    std::cout << "Rebucketing done: " << MPI_Wtime() << "|" << world_rank << std::endl;
+    //std::cout << "Rebucketing done: " << MPI_Wtime() << "|" << world_rank << std::endl;
 
 
     int offsets[world_size];
@@ -306,19 +301,21 @@ int main(int argc, char **argv)
     MPI_Reduce(&singleton, &singleton_global, 1, MPI_C_BOOL, MPI_LAND, MASTER, MPI_COMM_WORLD);
 
     MPI_Bcast(&singleton_global,1,MPI_C_BOOL,0,MPI_COMM_WORLD);
-    std::cout<<"h: "<<h<<"all singleton"<<singleton_global<<std::endl;
+    //std::cout<<"h: "<<h<<"all singleton"<<singleton_global<<std::endl;
     MPI_Barrier(MPI_COMM_WORLD);
 
     if(singleton_global){
-        std::vector<tuple_ISA<int>> final_SA;
+        /*
+	std::vector<tuple_ISA<int>> final_SA;
         if (world_rank == 0)
             final_SA.resize(string_length-K_SIZE+1);
-        MPI_Gatherv(&SA_B[0],size,MPI_TUPLE_ISA,&final_SA.front(),sendk,displsk,MPI_TUPLE_ISA,0,MPI_COMM_WORLD);
+        
+	MPI_Gatherv(&SA_B[0],size,MPI_TUPLE_ISA,&final_SA.front(),sendk,displsk,MPI_TUPLE_ISA,0,MPI_COMM_WORLD);
 
         if(world_rank==0){
             debug_tuple_print(final_SA,string_length-K_SIZE+1);
         }
-
+	*/
         MPI_Barrier(MPI_COMM_WORLD);
         //get time of algo
 
