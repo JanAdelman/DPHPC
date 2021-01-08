@@ -1,0 +1,80 @@
+# https://travis-ci.org/patflick/mxx
+
+language: cpp
+
+sudo: false
+
+compiler:
+    - gcc
+    - clang
+
+# TODO: mpich 2, OpenMPI 1.10
+env:
+    - MPI=mpich2     # MPI 2.2
+    - MPI=mpich3     # MPI 3.0
+    - MPI=openmpi16  # MPI 2.2
+    - MPI=openmpi18  # MPI 3.0
+    - MPI=openmpi18 FAKEBIG=1 # fake BigMPI functions
+
+# clang fails to compile mpich 3.1.4:
+matrix:
+    exclude:
+      - compiler: clang
+        env: MPI=mpich3
+
+before_install:
+    - pip install --user codecov
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    - llvm-toolchain-precise-3.7
+    packages:
+    - gdb
+    - gcc-4.8
+    - g++-4.8
+    - clang-3.7
+
+# caching of the whole `local` directory. Can't cache only the one for this
+# `env`, because otherwise the different instances will overwrite the cache.
+# For the first test-run, the build has to be run sequentially (limit parallel
+# workers to 1) so that the cache can be correctly initialized. Once the cache
+# is build, parallel workers can be re-enabled.
+cache:
+  directories:
+    - $HOME/local
+
+before_script:
+    # set compiler to newer versions
+    - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+    - if [ "$CXX" = "clang++" ]; then export CXX="clang++-3.7" CC="clang-3.7"; fi
+    # install MPI
+    - mkdir -p $HOME/local
+    - sh ./conf/travis-install-mpi.sh $MPI
+    - ls -r $HOME/local
+    # set up MPI location
+    - export PATH=$PATH:$HOME/local/$MPI/bin
+    - export LIBRARY_PATH=$LIBRARY_PATH:$HOME/local/$MPI/lib
+    - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/local/$MPI/lib
+    # print out version information
+    - $CXX --version
+    - mpiexec --version
+    # prepare build mxx
+    - mkdir build
+    - cd build
+    - if [ -z "$FAKEBIG" ]; then cmake -DTRAVIS=ON -DCMAKE_BUILD_TYPE=Debug -DMPI_C_COMPILER=$HOME/local/$MPI/bin/mpicc -DMPI_CXX_COMPILER=$HOME/local/$MPI/bin/mpicxx ../;
+      else cmake -DFAKE_BIG_MPI=ON -DTRAVIS=ON -DCMAKE_BUILD_TYPE=Debug -DMPI_C_COMPILER=$HOME/local/$MPI/bin/mpicc -DMPI_CXX_COMPILER=$HOME/local/$MPI/bin/mpicxx ../; fi
+
+script:
+    # build mxx and run tests
+    - make
+    - ./bin/mxx-test-all # run without mpi (= -np 1)
+    - mpiexec -np 4 ./bin/mxx-test-all
+    - mpiexec -np 13 ./bin/mxx-test-all
+
+after_success:
+  # only collect coverage if compiled with gcc
+  - if [ "$CXX" = "g++-4.8" ]; then codecov --gcov-exec gcov-4.8; fi
+  #- cat "/home/travis/build/patflick/mxx/build/#home#travis#build#patflick#mxx#include#mxx#sort.hpp.gcov"
+  #- gdb -batch -ex "b sort.hpp:47" -ex run -ex disas -ex q --args ./bin/mxx-test-sort
