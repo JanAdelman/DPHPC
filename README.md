@@ -19,14 +19,17 @@ Our project consists of the following steps:
 
 The build environment with MPICH and google-benchmark can be built using the contained Dockerfile. 
 
+* Compile:
 ```
-docker build -t hpc .
-sudo docker run -it --entrypoint /bin/bash <ID>
+mpicxx -O3 -pg  -std=c++11 main_mpi.cpp -o main
 ```
 
-The project is then built using MPI with the appropriate flags. 
-
+* GPROF Anyalysis
 ```
-mpicxx -std=c++14 -stdlib=libc++ prefix_doubling.cpp -o main -lbenchmark
-mpiexec -np 1 ./main
+gprof ./main  gmon.out
+```
+
+* Euler 
+```
+bsub -n 128 -R "rusage[mem=amount_of_mem_you_need (bytes)]" mpirun  ./main
 ```
