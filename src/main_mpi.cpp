@@ -305,7 +305,7 @@ int main(int argc, char **argv)
     MPI_Barrier(MPI_COMM_WORLD);
 
     if(singleton_global){
-        /*
+        
 	std::vector<tuple_ISA<int>> final_SA;
         if (world_rank == 0)
             final_SA.resize(string_length-K_SIZE+1);
@@ -315,7 +315,7 @@ int main(int argc, char **argv)
         if(world_rank==0){
             debug_tuple_print(final_SA,string_length-K_SIZE+1);
         }
-	*/
+	
         MPI_Barrier(MPI_COMM_WORLD);
         //get time of algo
 

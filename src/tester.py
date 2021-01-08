@@ -31,7 +31,7 @@ print("Python Sorted")
 
 
 
-with open("input.txt", "w") as file:
+with open("data/input.txt", "w") as file:
     file.write(input_string)
 
 
