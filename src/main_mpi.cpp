@@ -31,8 +31,7 @@ int main(int argc, char **argv)
     // Get the rank of the process
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    if(argv[1]) INPUT_PATH = argv[1];
-    std::cout << INPUT_PATH << std::endl;	
+    if(argv[1]) INPUT_PATH = argv[1];	
     //showMemUsage("after initialization", world_rank);
 
     //SETUP TUPLE STRUCT
@@ -325,21 +324,27 @@ int main(int argc, char **argv)
         end = MPI_Wtime();
 
 	double maxtime, mintime, avgtime;
-	MPI_Reduce(&mytime, &maxtime, 1, MPI_DOUBLE,MPI_MAX, 0, MPI_COMM_WORLD);
+	MPI_Reduce(&mytime, &maxtime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&mytime, &mintime, 1, MPI_DOUBLE, MPI_MIN, 0,MPI_COMM_WORLD);
 	MPI_Reduce(&mytime, &avgtime, 1, MPI_DOUBLE, MPI_SUM, 0,MPI_COMM_WORLD);
         
 	MPI_Finalize();
 
         if (world_rank == 0) {
-             //print time elapsed on master node
+        //print time elapsed on master node
 	    avgtime /= world_size;
-	    	
-            std::cout << "Time of the algo:  "<< "*" << end-start << "*" << std::endl;
+
+
+        std::cout << end-start << "," << mintime << "," << maxtime << "," << avgtime << std::endl;
+	    
+        /*	
+        std::cout << "Time of the algo:  "<< "*" << end-start << "*" << std::endl;
 	    std::cout << "min_time: " << "*" <<  mintime << "*" << std::endl;
 	    std::cout << "max_time: " << "*" <<  maxtime << "*" <<std::endl;
-            std::cout << "avergage_time: "<< "*" << avgtime << "*" << std::endl;
-          }
+        std::cout << "avergage_time: "<< "*" << avgtime << "*" << std::endl;
+        */
+
+        }
 
         return 0;
 
