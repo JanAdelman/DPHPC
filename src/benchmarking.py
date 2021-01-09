@@ -1,24 +1,19 @@
 import os
 import random
 import string
-#from termcolor import colored
 import subprocess
 import pandas as pd
 
 cores = [4,6]
-#cores = [4]
-#word_len = [10**5, 10*6, 10**7, 10**8, 10**9]
-word_len = [10**4, 10**5]
-#WORD_LEN = 10**6
+word_len = [10**5, 10*6, 10**7, 10**8, 10**9]
 alphabet = ["A","C","T","G"]
 k = 32
 perf_data = list()
 
-
 #alphabet = string.ascii_uppercase
 for core in cores:
     for length in word_len:
-        for repetition in range(3):
+        for repetition in range(2):
 
             input_string = ''.join(random.choices(alphabet, k=length))
 
@@ -29,10 +24,12 @@ for core in cores:
             process.wait()
 
             timed = process.communicate()[0]
+            overall_time = float(timed.decode().split('*')[1])
+            min_time = float(timed.decode().split('*')[3])
+            max_time = float(timed.decode().split('*')[5])
+            average_time = float(timed.decode().split('*')[7])
+   
+            perf_data.append([core, length, overall_time, min_time, max_time, average_time])
 
-            perf_data.append([core, length,float(timed.decode().split('*')[1])])
-
-
-
-        df = pd.DataFrame(perf_data, columns = ['nr_cores', 'str_length', 'time'])
+        df = pd.DataFrame(perf_data, columns = ['nr_cores', 'str_length', 'overall_time', 'min_time', 'max_time', 'average_time'])
         df.to_csv("performance.csv")
