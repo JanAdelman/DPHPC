@@ -15,11 +15,14 @@ std::string INPUT_PATH = "./data/input.txt";
 
 int main(int argc, char **argv)
 {
-    //setting up timing variables
-    double start, end;
     MPI_Init(NULL, NULL);
     MPI_Barrier(MPI_COMM_WORLD);
+    // setting up timing variables 
+    double start, end, mytime;
 
+    //Start timing 
+    start = MPI_Wtime();
+    mytime = MPI_Wtime(); //timing for min/max/average 
 
     // Get the number of processes
     int world_size;
@@ -30,8 +33,6 @@ int main(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
     //showMemUsage("after initialization", world_rank);
-    // Starting timer
-    start = MPI_Wtime();
 
     //SETUP TUPLE STRUCT
     MPI_Datatype MPI_TUPLE_STRUCT;
@@ -318,15 +319,25 @@ int main(int argc, char **argv)
 	
         MPI_Barrier(MPI_COMM_WORLD);
         //get time of algo
-
+	
+	mytime = MPI_Wtime() - mytime;
         end = MPI_Wtime();
 
-        MPI_Finalize();
+	double maxtime, mintime, avgtime;
+	MPI_Reduce(&mytime, &maxtime, 1, MPI_DOUBLE,MPI_MAX, 0, MPI_COMM_WORLD);
+	MPI_Reduce(&mytime, &mintime, 1, MPI_DOUBLE, MPI_MIN, 0,MPI_COMM_WORLD);
+	MPI_Reduce(&mytime, &avgtime, 1, MPI_DOUBLE, MPI_SUM, 0,MPI_COMM_WORLD);
+        
+	MPI_Finalize();
 
         if (world_rank == 0) {
              //print time elapsed on master node
-
-            std::cout <<  "*" << end-start << "*" << std::endl;
+	    avgtime /= world_size;
+	    	
+            std::cout << "Time of the algo:  " << end-start <<  std::endl;
+	    std::cout << "min_time: " << mintime << std::endl;
+	    std::cout << "max_time: " << maxtime << std::endl;
+            std::cout << "avergage_time: "<< avgtime << std::endl;
           }
 
         return 0;
