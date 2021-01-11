@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     if(argv[1]) INPUT_PATH = argv[1];	
     //showMemUsage("after initialization", world_rank);
-
+    
     //SETUP TUPLE STRUCT
     MPI_Datatype MPI_TUPLE_STRUCT;
     int lengths[2] = {1, 1};
@@ -306,17 +306,17 @@ int main(int argc, char **argv)
     MPI_Barrier(MPI_COMM_WORLD);
 
     if(singleton_global){
-        
+   /*     
 	std::vector<tuple_ISA<int>> final_SA;
         if (world_rank == 0)
             final_SA.resize(string_length-K_SIZE+1);
         
 	MPI_Gatherv(&SA_B[0],size,MPI_TUPLE_ISA,&final_SA.front(),sendk,displsk,MPI_TUPLE_ISA,0,MPI_COMM_WORLD);
-
+   
         if(world_rank==0){
             debug_tuple_print(final_SA,string_length-K_SIZE+1);
         }
-	
+*/	
         MPI_Barrier(MPI_COMM_WORLD);
         //get time of algo
 	
