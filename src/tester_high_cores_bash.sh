@@ -13,7 +13,7 @@ for numbers in {1..10}
 do
 arr_settings+=($file $i $numbers)
 echo -e "${arr_settings[0]},${arr_settings[1]}, ${arr_settings[2]}, \c" >> big_inputs.csv
-mpiexec -np $i ./main $file >> big_inputs.csv 
+mpiexec -n $i ./main $file >> big_inputs.csv 
 declare -a arr_settings=()
 done
 done
