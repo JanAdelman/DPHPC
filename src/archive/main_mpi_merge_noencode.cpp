@@ -7,9 +7,8 @@
 #include <vector>
 #include "mem-usage.h"
 
-
 #define MASTER 0
-//std::string INPUT_PATH = "./10power8.txt";
+
 int main(int argc, char **argv)
 {
     //setting up timing variables
@@ -43,7 +42,6 @@ int main(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
     //MAIN LOGIC
-
     //reading in file to get the string length
     std::ifstream is;
     is.open("./10power8.txt", std::ios::binary );
@@ -57,7 +55,6 @@ int main(int argc, char **argv)
     int k = 0;
     int sendnums[world_size]; //size to send out to process i
     int displace[world_size];  //displacement from start
-    //maybe do this world_size-1 to not include 0
     for (int i = 0; i < world_size; i++)
     {
         if (i < nextra) sendnums[i] = nmin + 1;
@@ -84,9 +81,7 @@ int main(int argc, char **argv)
     File.close();
 
     //Declare vector for global result
-    std::vector<tuple_t> global_result_kmers;
-
-   
+    std::vector<tuple_t> global_result_kmers; 
 
     if (world_rank == MASTER)
     {
@@ -109,7 +104,6 @@ int main(int argc, char **argv)
     {
        
         std::vector<tuple_t> kmers(size);
-
         get_kmers_adapt(input, K_SIZE, kmers, size,displace[world_rank]);
 
         delete[] input;
@@ -130,7 +124,7 @@ int main(int argc, char **argv)
     int now = 0;
     int sendcounts[world_size]; //size to send out to process i
     int displs[world_size];     //displacement from start
-    //maybe do this world_size-1 to not include 0
+    
     for (int i = 0; i < world_size; i++)
     {
         if (i < kextra)
@@ -158,11 +152,6 @@ int main(int argc, char **argv)
 
     //Rebucketing
     rebucketing(SA_B, recvbuf, sendcounts[world_rank], displs,counts_bucket,world_rank, world_size);
-
-    
-
-
-
     MPI_Barrier(MPI_COMM_WORLD);
 
 
@@ -188,15 +177,15 @@ int main(int argc, char **argv)
     }
     std::vector<tuple_t>().swap(recvbuf);
     MPI_Barrier(MPI_COMM_WORLD);
-
-
+   
+    //################################################//
+    // Main for loop to perfrom prefix doubling.      //
+    //################################################//
     
-
-    //Main for loop
     for(int h=K_SIZE;h<=string_length-K_SIZE+1;h*=2)
     {
 
-        //buffer to send out to other processors
+    //buffer to send out to other processors
     std::vector<tuple_ISA> sendbufISA(sendcounts[world_rank]);
 
     int displace_ISA[world_size];
@@ -225,8 +214,6 @@ int main(int argc, char **argv)
     reorder_to_stringorder(B,recvbuf_ISA,sendcounts[world_rank],displs[world_rank]);
     std::vector<tuple_ISA>().swap(recvbuf_ISA);
 
-
-
     int offsets[world_size];
     for(int i=0;i<world_size;i++){
         offsets[i]=displs[i]+sendcounts[i]-1;
@@ -240,13 +227,11 @@ int main(int argc, char **argv)
 
 
     //TRIPLES
-
     std::vector<triple_t> triple_arr(sendcounts[world_rank]);
     create_triple(B,B2,sendcounts[world_rank],displs[world_rank], triple_arr);
   
     std::vector<int>().swap(B);
     std::vector<int>().swap(B2);
-
 
     //SORT LOCALLY
     t_sort(triple_arr, sendcounts[world_rank]);
@@ -268,7 +253,7 @@ int main(int argc, char **argv)
     MPI_Barrier(MPI_COMM_WORLD);
 
 
-
+    // Set up triple struct array of ints 
     MPI_Datatype MPI_TRIPLE_STRUCT;
     int lengths_triple[3] = {1, 1, 1};
     MPI_Aint displacements_triple[3] = {0, sizeof(int), 2*sizeof(int)};
@@ -278,14 +263,12 @@ int main(int argc, char **argv)
     MPI_Type_commit(&MPI_TRIPLE_STRUCT);
 
     //SCATTER
-
     std::vector<triple_t> recvbuf_triplets(sendcounts[world_rank]);
     MPI_Scatterv(&global_result_triplet[0], sendcounts, displs, MPI_TRIPLE_STRUCT, &recvbuf_triplets[0], sendcounts[world_rank], MPI_TRIPLE_STRUCT, 0, MPI_COMM_WORLD);
 
     std::vector<triple_t>().swap(global_result_triplet);
 
     //REBUCKET
-
     //counts of tuples to send out to each processor
     //according to their index for later ISA creation
     for(int i=0;i<world_size;i++){
@@ -293,7 +276,6 @@ int main(int argc, char **argv)
     }
 
     rebucketing(SA_B,recvbuf_triplets, sendcounts[world_rank], displs,world_rank,world_size,counts_bucket);
-
     MPI_Barrier(MPI_COMM_WORLD);
 
     if (world_rank < world_size - 1)
@@ -318,7 +300,7 @@ int main(int argc, char **argv)
 
     std::vector<triple_t>().swap(recvbuf_triplets);
 
-
+    // check singleton 
     bool singleton = all_singleton(SA_B,MPI_COMM_WORLD, world_rank, world_size, sendcounts[world_rank]);
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -328,27 +310,14 @@ int main(int argc, char **argv)
     MPI_Bcast(&singleton_global,1,MPI_C_BOOL,0,MPI_COMM_WORLD);
 
     if(singleton_global){
-        //write data to output file
-        /*
-        std::vector<tuple_ISA> final_SA(string_length-K_SIZE+1);
-        MPI_Gatherv(&SA_B[0],sendcounts[world_rank],MPI_TUPLE_ISA,&final_SA[0],sendcounts,displs,MPI_TUPLE_ISA,0,MPI_COMM_WORLD);
-
-        if(world_rank==0){
-            debug_tuple_print(final_SA,string_length-K_SIZE+1);
-
-        }
-        */
 
         MPI_Barrier(MPI_COMM_WORLD);
         //get time of algo
-
         end = MPI_Wtime();
-
         MPI_Finalize();
 
         if (world_rank == 0) {
-             //print time elapsed on master node
-
+            //print time elapsed on master node
             std::cout <<  "*" << end-start << "*" << std::endl;
           }
 
