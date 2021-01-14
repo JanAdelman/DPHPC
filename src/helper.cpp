@@ -51,7 +51,6 @@ MXX_CUSTOM_TEMPLATE_STRUCT(MXX_WRAP_TEMPLATE(triple_t<triple>),idx,b,b2);
 int bucket_id(int* displ, tuple_ISA<int> &SA_B, int world_size){
     for(int i=0;i<world_size-1;i++){
         if (displ[i]<=SA_B.SA && displ[i+1]>SA_B.SA){
-            //std::cout<<"SA "<<SA_B.SA<<"i "<<i<<std::endl;
             return i;
         }
     }
