@@ -7,7 +7,7 @@ run:
 
 compile-run: 
 	mpicxx -std=c++11 -O3 main_mpi.cpp -o main
-	mpiexec -np 4 ./main --mca orte_base_help_aggregate 0
+	mpiexec -np 4 ./main
 
 debug:
 	mpicxx -g -std=c++2a main_mpi.cpp -o main
